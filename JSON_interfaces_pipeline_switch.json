@@ -10,19 +10,19 @@
   ],
   "cv_split_test": 0.2,
   "cv_strategy_specific_config": {
-    "name": "KFold",
+    "type": "KFold",
     "parameters": {
       "n_splits": "3"
     }
   },
   "cv_strategy_hyperparameter_search": {
-    "name": "KFold",
+    "type": "KFold",
     "parameters": {
       "n_splits": "3"
     }
   },
   "optimizer": {
-    "name": "time_boxed_random_grid_search",
+    "type": "time_boxed_random_grid_search",
     "parameters": {
       "limit_in_minutes": "10"
     }
