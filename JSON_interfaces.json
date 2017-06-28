@@ -2,7 +2,7 @@
 // Output from Designer to Manager
 
 {
-  "type": "pipeline",
+  "type": "hyperpipe",
   "name": "case_a",
   "metrics": [
     "accuracy",
@@ -70,32 +70,38 @@
 // Output from Manager to Client:
 
 {
-    "Pipeline" : {
-        "name" : "case_a",
-        "metrics" : [ 
-            "accuracy", 
-            "f1_score"
-        ],
-        "data-source" : {
-            "features" : "?? what to do here???",
-            "targets" : "?? what to do here???"
-        },
-        "cv_index" : {
-            "train" : "[[1, 2, 3, 4], [5, 6, 7, 8][2, 3, 4, 5]]",
-            "test" : "[[5, 6, 7, 8], [1, 2, 3, 4], [1, 6, 7, 8]]"
-        },
-        "elements" : {
-            "standard_scaler" : {
-                "disabled" : true
-            },
-            "pca" : {
-                "n_components" : 10
-            },
-            "svc" : {
-                "C" : 0.5,
-                "kernel" : "rbf"
-            }
-        }
+  "type": "pipeline",
+  "manager_info": {
+    "status": "todo",
+    "duration": 0
+  },
+  "client_info": {
+    "gpu_heavy": true,
+    "cpu_heavy": false,
+    "ram_heavy": true
+  },
+  "name": "case_a",
+  "metrics": [
+    "accuracy",
+    "f1_score"
+  ],
+  "data": {
+    "X": [[1, 2, 3, 4], [5, 6, 7, 8],[2, 3, 4, 5]],
+    "y": [1, 3, 2]
+  },
+  "elements": [
+    {
+      "type": "standard_scaler",
+      "disabled": true
+    },
+    {
+      "type": "pca",
+      "n_components": 10
+    },
+    {
+      "type": "svc",
+      "C": 0.5,
+      "kernel": "rbf"
     }
+  ]
 }
-
