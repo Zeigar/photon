@@ -2,7 +2,7 @@
 // Output from Designer to Manager
 
 {
-  "type": "pipeline",
+  "type": "hyperpipe",
   "name": "case_a",
   "metrics": [
     "accuracy",
