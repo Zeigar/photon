@@ -1,0 +1,29 @@
+{
+  "type": "hyperpipe",
+  "elements": [
+    {
+      "type": "pipeline_stacking",
+      "pipelines": {
+        "source_1": [
+          {
+            "type": "pca"
+          },
+          {
+            "type": "svc"
+          }
+        ],
+        "source_2": [
+          {
+            "type": "standard_scaler"
+          },
+          {
+            "type": "svc"
+          }
+        ]
+      }
+    },
+    {
+      "type": "svc"
+    }
+  ]
+}
