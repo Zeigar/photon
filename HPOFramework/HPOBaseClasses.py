@@ -5,7 +5,7 @@ from itertools import product
 from collections import OrderedDict
 
 from .ResultLogging import ResultLogging
-from .HPOptimizers import GridSearchOptimizer, RandomGridSearchOptimizer, TimeBoxedRandomGridSearchOptimizer
+from .HPOptimizers import GridSearchOptimizer, RandomGridSearchOptimizer, TimeBoxedRandomGridSearchOptimizer, FabolasOptimizer
 
 from sklearn.model_selection._validation import _fit_and_score
 from sklearn.model_selection._search import ParameterGrid
@@ -20,7 +20,8 @@ class Hyperpipe(BaseEstimator):
 
     OPTIMIZER_DICTIONARY = {'grid_search': GridSearchOptimizer,
                             'random_grid_search': RandomGridSearchOptimizer,
-                            'timeboxed_random_grid_search': TimeBoxedRandomGridSearchOptimizer}
+                            'timeboxed_random_grid_search': TimeBoxedRandomGridSearchOptimizer,
+                            'fabolas': FabolasOptimizer}
 
     def __init__(self, name, hyperparameter_specific_config_cv_object: BaseCrossValidator, optimizer='grid_search', optimizer_params={},
                  local_search=True, groups=None,
@@ -173,7 +174,10 @@ class Hyperpipe(BaseEstimator):
                     print('optimizing of:', self.name)
                     pprint(self.optimize_printing(specific_config))
                     results_cv, specific_parameters = hp.calculate_cv_score(validation_X, validation_y, cv_iter)
-                    config_score = (results_cv['score']['train'], results_cv['score']['test'])
+                    config_score = (
+                        results_cv['score']['train'], results_cv['score']['test'],
+                        results_cv['time']['fit'], results_cv['time']['score']
+                    )
                     # 3. inform optimizer about performance
                     self.optimizer.evaluate_recent_performance(specific_config, config_score)
                     print('Performance History: ', results_cv['score'])
@@ -372,7 +376,10 @@ class TestPipeline(object):
         self.cv_results = ResultLogging.reorder_results(self.cv_results)
         self.cv_results['n_samples'] = {'train': n_train, 'test': n_test}
         parameters = self.pipe.get_params()
-        # self.cv_results['scoring_time'] = np.sum([l[3] for l in cv_scores])
+        self.cv_results['time'] = {
+            'fit': np.sum([l[3] for l in cv_scores]),
+            'score': np.sum([l[4] for l in cv_scores])
+        }
         return self.cv_results, parameters
 
     def score(self, estimator, X, y_true):
@@ -851,7 +858,3 @@ class PipelineFusion(PipelineElement):
         predicted = self.predict(X_test)
 
         return accuracy_score(y_test, predicted)
-
-
-
-
