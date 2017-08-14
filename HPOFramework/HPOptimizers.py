@@ -189,18 +189,18 @@ class FabolasOptimizer(object):
             self._model_objective.train(self._X, self._Y, do_optimize=True)
             self._model_cost.train(self._X, self._cost, do_optimize=True)
 
-            # Estimate incumbent by projecting all observed points to the task of interest and
-            # pick the point with the lowest mean prediction
-            incumbent, incumbent_value = self._projected_incumbent_estimation(
-                self._model_objective, self._X[:, :-1], proj_value=1
-            )
-
             # Maximize acquisition function
             self._acquisition_func.update(self._model_objective, self._model_cost)
             new_x = self._maximizer.maximize()
             self._X = np.concatenate((self._sX, new_x[None, :]), axis=0)
 
             yield new_x[:-1]
+
+        # This final configuration should be the best one
+        final_config, _ = self._projected_incumbent_estimation(
+            self._model_objective, self._X[:, :-1], proj_value=1
+        )
+        yield final_config[:-1].toList()
 
     def evaluate_recent_performance(self, config, performance, times):
         score = performance[1]
