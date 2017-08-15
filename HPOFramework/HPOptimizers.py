@@ -205,7 +205,7 @@ class FabolasOptimizer(object):
         )
         yield final_config[:-1].toList(), 1  # subset is the whole data-set
 
-    def evaluate_recent_performance(self, config, performance, times):
+    def evaluate_recent_performance(self, config, performance):
         score = performance[1]
         cost = performance[2]+performance[3]
 
