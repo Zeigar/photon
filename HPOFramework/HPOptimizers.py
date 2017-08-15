@@ -4,9 +4,9 @@ import numpy as np
 import datetime
 import george
 
-from .fabolas.GPMCMC import FabolasGPMCMC, MarginalizationGPMCMC
+from .fabolas.GPMCMC import FabolasGPMCMC
 from .fabolas.Priors import EnvPrior
-from .fabolas.Maximizer import InformationGainPerUnitCost, Direct
+from .fabolas.Maximizer import InformationGainPerUnitCost, Direct, MarginalizationGPMCMC
 
 
 class GridSearchOptimizer(object):
@@ -215,7 +215,7 @@ class FabolasOptimizer(object):
         self._Y = np.concatenate((self._Y, np.log(np.array([score]))), axis=0)  # Model the target function on a logarithmic scale
         self._cost = np.concatenate((self._cost, np.log(np.array([cost]))), axis=0)  # Model the cost function on a logarithmic scale
 
-    def _projected_incumbent_estimation(model, X, proj_value=1):
+    def _projected_incumbent_estimation(self, model, X, proj_value=1):
         projection = np.ones([X.shape[0], 1]) * proj_value
         X_projected = np.concatenate((X, projection), axis=1)
 
@@ -227,16 +227,18 @@ class FabolasOptimizer(object):
 
         return incumbent, incumbent_value
 
-    def _transform(s, s_min, s_max):
-        s_transform = (np.log2(s) - np.log2(s_min)) / (np.log2(s_max) - np.log2(s_min))
+    def _transform(self, s):
+        s_transform = (np.log2(s) - np.log2(self._s_min)) \
+                      / (np.log2(self._s_max) - np.log2(self._s_min))
         return s_transform
 
-
-    def _retransform(s_transform, s_min, s_max):
-        s = np.rint(2**(s_transform * (np.log2(s_max) - np.log2(s_min)) + np.log2(s_min)))
+    def _retransform(self, s_transform):
+        s = np.rint(2**(s_transform * (np.log2(self._s_max) \
+                                       - np.log2(self._s_min)) \
+                        + np.log2(self._s_min)))
         return int(s)
 
-    def _init_random_uniform(lower, upper, n_points, rng=None):
+    def _init_random_uniform(self, lower, upper, n_points, rng=None):
         """
         Samples N data points uniformly.
 
