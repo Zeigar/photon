@@ -131,7 +131,8 @@ class MNISTLoader(object):
         :param testdataf: File containing the test-data
         :param testlabelf: File containing the test-labels
         :param kwargs: runaway-args
-        :return: pandas data-frame
+        :return: pandas data-frame of
+            train_data, train_labels, test_data, test_labels
         '''
         # ensure all needed files exist and download them if necessary
         self._ensure_file_existance(
@@ -148,10 +149,8 @@ class MNISTLoader(object):
         test_data = self._load_images(datapath+testdataf)
         test_labels = self._load_labels(datapath+testlabelf)
 
-        return pd.DataFrame(
-            np.concatenate((train_data, test_data)),
-            np.concatenate((train_labels, test_labels))
-        )
+        return pd.DataFrame(train_data), pd.DataFrame(train_labels),\
+                pd.DataFrame(test_data), pd.DataFrame(test_labels)
 
     def _load_images(self, file):
         '''
