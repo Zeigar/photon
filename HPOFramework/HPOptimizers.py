@@ -118,13 +118,14 @@ class FabolasOptimizer(object):
         cost_env_kernel = george.kernels.BayesianLinearRegressionKernel(n_dims+1,
                                                                      dim=n_dims,
                                                                      degree=cost_degree)
+        self._cost_kernel = 1  # 1 = covariance amplitude
         cost_env_kernel[:] = np.ones([cost_degree + 1]) * 0.1
 
         self._cost_kernel *= cost_env_kernel
 
         self._cost_prior = EnvPrior(len(self._cost_kernel) + 1,
                                     n_ls=n_dims,
-                                    n_lr=(self._cost_degree + 1),
+                                    n_lr=(cost_degree + 1),
                                     rng=rng)
 
         self.next_config = self.next_config_generator()
@@ -153,7 +154,7 @@ class FabolasOptimizer(object):
                                    burnin_steps=self._burnin,
                                    chain_length=self._chain_length,
                                    n_hypers=self._n_hypers,
-                                   basis_func=self._linear_bf,
+                                   basis_func=linear_bf,
                                    normalize_output=False,
                                    lower=self._lower,
                                    upper=self._upper,
