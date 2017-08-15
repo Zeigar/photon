@@ -116,7 +116,7 @@ class MNISTLoader(object):
     def __call__(
         self,
         datapath='./',
-        traindataf='train-images-idx3-byte.gz',
+        traindataf='train-images-idx3-ubyte.gz',
         trainlabelf='train-labels-idx1-ubyte.gz',
         testdataf='t10k-images-idx3-ubyte.gz',
         testlabelf='t10k-labels-idx1-ubyte.gz',
@@ -136,12 +136,12 @@ class MNISTLoader(object):
         '''
         # ensure all needed files exist and download them if necessary
         self._ensure_file_existance(
-            {
-                traindataf:'train-images-idx3-ubyte.gz',
-                trainlabelf:'train-labels-idx1-ubyte.gz',
-                testdataf:'t10k-images-idx3-ubyte.gz',
-                testlabelf:'t10k-labels-idx1-ubyte.gz'
-            },
+            [
+                (traindataf, 'train-images-idx3-ubyte.gz'),
+                (trainlabelf, 'train-labels-idx1-ubyte.gz'),
+                (testdataf, 't10k-images-idx3-ubyte.gz'),
+                (testlabelf, 't10k-labels-idx1-ubyte.gz')
+            ],
             datapath
         )
         train_data = self._load_images(datapath+traindataf)
@@ -149,8 +149,8 @@ class MNISTLoader(object):
         test_data = self._load_images(datapath+testdataf)
         test_labels = self._load_labels(datapath+testlabelf)
 
-        return pd.DataFrame(train_data), pd.DataFrame(train_labels),\
-                pd.DataFrame(test_data), pd.DataFrame(test_labels)
+        return pd.DataFrame(train_data), train_labels,\
+                pd.DataFrame(test_data), test_labels
 
     def _load_images(self, file):
         '''
@@ -163,7 +163,8 @@ class MNISTLoader(object):
             data = np.frombuffer(f.read(), np.uint8, offset=16)
         # Reshape datavectors to monochrome images
         # shape: (examples, channels, rows, columns)
-        data = data.reshape(-1, 1, 28, 28)
+        img_pixels = 28**2
+        data = data.reshape(int(len(data)/img_pixels), img_pixels)
         # Convert byte-values [0,255] to [0,1] (actually [0, 255/256])
         return data/np.float32(256)
 
@@ -194,9 +195,7 @@ class MNISTLoader(object):
         :param remotepath: base-url containing remote files
         '''
         from urllib.request import urlretrieve
-        if type(filenames) is list:
-            filenames = zip(filenames, filenames)
 
         for l,r in filenames:
             if not os.path.exists(localpath+l):
-                urlretrieve(localpath+l, remotepath+r)
+                urlretrieve(remotepath+l, localpath+r)
