@@ -3,6 +3,7 @@ import numpy as np
 from pprint import pprint
 from itertools import product
 from collections import OrderedDict
+import random
 
 from .ResultLogging import ResultLogging
 from .HPOptimizers import GridSearchOptimizer, RandomGridSearchOptimizer, TimeBoxedRandomGridSearchOptimizer, FabolasOptimizer
@@ -167,13 +168,20 @@ class Hyperpipe(BaseEstimator):
                 cv_iter = list(self.hyperparameter_specific_config_cv_object.split(validation_X, validation_y))
 
                 # do the optimizing
-                for specific_config in self.optimizer.next_config:
+                for specific_config, subset_size in self.optimizer.next_config:
 
                     hp = TestPipeline(self.pipe, specific_config, self.metrics)
                     print('******************************')
                     print('optimizing of:', self.name)
                     pprint(self.optimize_printing(specific_config))
-                    results_cv, specific_parameters = hp.calculate_cv_score(validation_X, validation_y, cv_iter)
+                    rand_subset_indices = random.sample(
+                        range(len(validation_X)), int(len(validation_X)*subset_size)
+                    ) if subset_size < 1 else range(len(validation_X))
+                    results_cv, specific_parameters = hp.calculate_cv_score(
+                        validation_X[rand_subset_indices],
+                        validation_y[rand_subset_indices],
+                        cv_iter
+                    )
                     config_score = (
                         results_cv['score']['train'], results_cv['score']['test'],
                         results_cv['time']['fit'], results_cv['time']['score']

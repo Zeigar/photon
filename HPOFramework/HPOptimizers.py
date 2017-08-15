@@ -33,7 +33,7 @@ class GridSearchOptimizer(object):
             param_dict = {}
             for item in parameters:
                 param_dict.update(item)
-            yield param_dict
+            yield param_dict, 1
 
     def evaluate_recent_performance(self, config, performance):
         # influence return value of next_config
@@ -69,10 +69,11 @@ class TimeBoxedRandomGridSearchOptimizer(RandomGridSearchOptimizer):
             self.end_time = self.start_time + datetime.timedelta(minutes=self.limit_in_minutes)
         for parameters in super(TimeBoxedRandomGridSearchOptimizer, self).next_config_generator():
             if datetime.datetime.now() < self.end_time:
-                yield parameters
+                yield parameters, 1
 
 
 class FabolasOptimizer(object):
+
     def __init__(self, lower, upper, s_min, s_max,
             n_init=40, num_iterations=100, subsets=[256, 128, 64],
             burnin=100, chain_length=100, n_hypers=12, rng=None,
@@ -176,9 +177,10 @@ class FabolasOptimizer(object):
 
     def next_config_generator(self):
         for self._it in range(self._n_init):
+            s = int(self._s_max / float(self._subsets[self._it % len(self._subsets)]))
             x = self._init_random_uniform(self._lower, self._upper, 1, self._rng)[0]
-            self._X.append(x)
-            yield x
+            self._X.append(np.append(x, self._transform(s)))
+            yield x, s
 
         self._X = np.array(self._X)
         self._Y = np.array(self._Y)
@@ -192,15 +194,16 @@ class FabolasOptimizer(object):
             # Maximize acquisition function
             self._acquisition_func.update(self._model_objective, self._model_cost)
             new_x = self._maximizer.maximize()
-            self._X = np.concatenate((self._sX, new_x[None, :]), axis=0)
+            s = self._retransform(new_x[-1])
+            self._X = np.concatenate((self._X, new_x[None, :]), axis=0)
 
-            yield new_x[:-1]
+            yield new_x[:-1], s
 
         # This final configuration should be the best one
         final_config, _ = self._projected_incumbent_estimation(
             self._model_objective, self._X[:, :-1], proj_value=1
         )
-        yield final_config[:-1].toList()
+        yield final_config[:-1].toList(), 1  # subset is the whole data-set
 
     def evaluate_recent_performance(self, config, performance, times):
         score = performance[1]
