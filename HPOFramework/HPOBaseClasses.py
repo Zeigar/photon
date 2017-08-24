@@ -168,19 +168,26 @@ class Hyperpipe(BaseEstimator):
                 cv_iter = list(self.hyperparameter_specific_config_cv_object.split(validation_X, validation_y))
 
                 # do the optimizing
-                for specific_config, subset_size in self.optimizer.next_config:
-
+                for specific_config, subset_frac in self.optimizer.next_config:
                     hp = TestPipeline(self.pipe, specific_config, self.metrics)
                     print('******************************')
                     print('optimizing of:', self.name)
                     pprint(self.optimize_printing(specific_config))
-                    rand_subset_indices = random.sample(
-                        range(len(validation_X)), int(len(validation_X)*subset_size)
-                    ) if subset_size < 1 else range(len(validation_X))
+
+                    specific_cv_iter = []
+                    if subset_frac > 1:
+                        for cv_test, cv_train in cv_iter:
+                            specific_cv_iter.append((
+                                np.random.choice(cv_test, int(len(cv_test)/subset_frac), False),
+                                cv_test
+                            ))
+                    else:
+                        specific_cv_iter = cv_iter
+
                     results_cv, specific_parameters = hp.calculate_cv_score(
-                        validation_X[rand_subset_indices],
-                        validation_y[rand_subset_indices],
-                        cv_iter
+                        validation_X,
+                        validation_y,
+                        specific_cv_iter
                     )
                     config_score = (
                         results_cv['score']['train'], results_cv['score']['test'],
