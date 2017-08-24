@@ -1,29 +1,69 @@
 {
-  "type": "hyperpipe",
+  "data_sources": {
+    "Quelle_1": {
+      "source": "\\samples.csv",
+      "source_format": "path",
+      "source_pipeline": [
+        {
+          "pipelines": {
+            "pipeline_1": [
+              {
+                "hyperparameters": {},
+                "type": "svc"
+              }
+            ],
+            "pipeline_2": [
+              {
+                "hyperparameters": {},
+                "type": "pca"
+              },
+              {
+                "hyperparameters": {},
+                "type": "svc"
+              }
+            ]
+          },
+          "type": "pipeline_stacking"
+        }
+      ],
+      "source_size": 100
+    },
+    "Quelle_2": {
+      "source": "-Datenbankabfrage einf\u00fcgen-",
+      "source_format": "query",
+      "source_pipeline": [
+        {
+          "hyperparameters": {},
+          "type": "pca"
+        },
+        {
+          "hyperparameters": {},
+          "type": "svc"
+        }
+      ],
+      "source_size": 50
+    }
+    },
   "elements": [
     {
-      "type": "pipeline_stacking",
-      "pipelines": {
-        "source_1": [
+      "name": "",
+      "pipelines": [
+        [
           {
-            "type": "pca"
-          },
-          {
+            "hyperparameters": {},
             "type": "svc"
           }
         ],
-        "source_2": [
+        [
           {
-            "type": "standard_scaler"
-          },
-          {
+            "hyperparameters": {},
             "type": "svc"
           }
         ]
-      }
-    },
-    {
-      "type": "svc"
+      ],
+      "type": "pipeline_switch"
     }
-  ]
+  ],
+  "name": "Outer Hyperpipe",
+  "type": "outer_hyperpipe"
 }
