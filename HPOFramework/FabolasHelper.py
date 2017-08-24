@@ -173,7 +173,7 @@ class FabolasHelper:
         final_config, _ = self._projected_incumbent_estimation(
             self._model_objective, self._X[:, :-1], proj_value=1
         )
-        return final_config[:-1].toList(), 1  # subset is the whole data-set
+        return final_config[:-1].tolist(), 1  # subset is the whole data-set
 
     def _create_param_dict(self, params, s):
         self._param_dict.update(
