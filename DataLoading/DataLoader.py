@@ -149,8 +149,8 @@ class MNISTLoader(object):
         test_data = self._load_images(datapath+testdataf)
         test_labels = self._load_labels(datapath+testlabelf)
 
-        return pd.DataFrame(train_data), train_labels,\
-                pd.DataFrame(test_data), test_labels
+        return train_data, train_labels,\
+                test_data, test_labels
 
     def _load_images(self, file):
         '''
