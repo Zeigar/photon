@@ -1,16 +1,18 @@
 
 from HPOFramework.HPOBaseClasses import Hyperpipe, PipelineElement
-from DataLoading.DataLoader import MNISTLoader
 from sklearn.model_selection import KFold
-import numpy as np
 from sklearn.metrics import classification_report
+from sklearn.datasets import fetch_mldata
+from sklearn.model_selection import train_test_split
 
-packed = 1
-train_data, train_labels, test_data, test_labels = MNISTLoader()()
+mnist = fetch_mldata('MNIST original')
+train_data, test_data, train_labels, test_labels = train_test_split(
+    mnist.data/255.,
+    mnist.target,
+    test_size=1/7
+)
 
 cv = KFold(n_splits=3, shuffle=True, random_state=0)
-lower = np.array([-10, -10])
-upper = np.array([10, 10])
 
 pipe = Hyperpipe(
     'god',
