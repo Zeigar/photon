@@ -149,6 +149,7 @@ class FabolasHelper:
             yield self._create_param_dict(*self._optimize_config())
 
         print('Fabolas: Final config')
+        self._model_objective.train(self._X, self._Y, do_optimize=True)
         yield self._create_param_dict(*self.get_incumbent())
 
     def process_result(self, score, cost):
