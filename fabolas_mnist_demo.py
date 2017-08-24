@@ -17,10 +17,10 @@ pipe = Hyperpipe(
     cv,
     optimizer='fabolas',
     optimizer_params={
-        'lower': lower, 'upper': upper, 'n_init': 8,
-        's_min': 100, 's_max': 5000, 'num_iterations': 10, 'subsets': [2048, 4096, 8192]
+        'n_init': 8, 's_min': 100, 's_max': 5000,
+        'num_iterations': 10, 'subsets': [2048, 4096, 8192]
     })
-pipe.add(PipelineElement.create('svc', {'kernel': ['rbf']}))
+pipe.add(PipelineElement.create('svc', {'C': [-10, 10, 1.0], 'gamma': [-10, 10, 0.0]}))
 
 pipe.fit(train_data, train_labels)
 predicted_labels = pipe.predict(test_data)
