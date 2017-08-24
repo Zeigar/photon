@@ -815,7 +815,7 @@ class FabolasGPMCMC(GaussianProcessMCMC):
                 upper=self.upper,
                 rng=self.rng
             )
-            self.model.train(X, y, do_optimize=False)
+            model.train(X, y, do_optimize=False)
             self.models.append(model)
 
         self.is_trained = True
