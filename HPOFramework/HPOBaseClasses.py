@@ -179,7 +179,7 @@ class Hyperpipe(BaseEstimator):
                         for cv_test, cv_train in cv_iter:
                             specific_cv_iter.append((
                                 np.random.choice(cv_test, int(len(cv_test)/subset_frac), False),
-                                cv_test
+                                cv_train
                             ))
                     else:
                         specific_cv_iter = cv_iter
