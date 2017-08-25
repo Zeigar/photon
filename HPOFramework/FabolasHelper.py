@@ -7,7 +7,7 @@ from .fabolas.Priors import EnvPrior
 from .fabolas.Maximizer import InformationGainPerUnitCost, Direct, MarginalizationGPMCMC
 
 class FabolasHelper:
-    def __init__(self, s_min, s_max, pipeline_elements,
+    def __init__(self, n_min_train_data, n_train_data, pipeline_elements,
                 n_init=40, num_iterations=100, subsets=[256, 128, 64],
                 burnin=100, chain_length=100, n_hypers=12, rng=None, **_):
         assert n_init <= num_iterations, "Number of initial design point has to be <= than the number of iterations"
@@ -40,8 +40,8 @@ class FabolasHelper:
         self._lower = np.array(self._lower)
         self._upper = np.array(self._upper)
 
-        self._s_min = s_min
-        self._s_max = s_max
+        self._s_min = n_min_train_data
+        self._s_max = n_train_data
         self._n_init = n_init
         self._num_iterations = num_iterations
         self._subsets = subsets
