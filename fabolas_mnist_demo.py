@@ -14,13 +14,14 @@ train_data, test_data, train_labels, test_labels = train_test_split(
 
 cv = KFold(n_splits=3, shuffle=True, random_state=0)
 
+n_train_data = len(train_data)
 pipe = Hyperpipe(
     'god',
     cv,
     optimizer='fabolas',
     optimizer_params={
-        'n_init': 8, 's_min': 100, 's_max': 5000,
-        'num_iterations': 10, 'subsets': [2048, 4096, 8192]
+        'n_init': 7, 'n_min_train_data': int(n_train_data/9000), 'n_train_data': n_train_data,
+        'num_iterations': 9, 'subsets': [2048, 4096, 8192]
     })
 pipe.add(PipelineElement.create('svc', {'C': [-10, 10, 1.0], 'gamma': [-10, 10, 0.0]}))
 
