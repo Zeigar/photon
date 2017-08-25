@@ -186,7 +186,7 @@ class FabolasHelper:
 
     def _init_models(self):
         s = self._subsets[self._it % len(self._subsets)]
-        x = self._init_random_uniform(self._lower, self._upper, 1, self._rng)[0]
+        x = self._init_random_uniform(self._lower, self._upper, 1)[0]
         self._X.append(np.append(x, self._transform(self._s_max/s)))
         return x, s
 
@@ -226,7 +226,7 @@ class FabolasHelper:
                         + np.log2(self._s_min)))
         return int(s)
 
-    def _init_random_uniform(self, lower, upper, n_points, rng=None):
+    def _init_random_uniform(self, lower, upper, n_points):
         """
         Samples N data points uniformly.
 
@@ -246,9 +246,6 @@ class FabolasHelper:
             The initial design data points
         """
 
-        if rng is None:
-            rng = np.random.RandomState(np.random.randint(0, 10000))
-
         n_dims = lower.shape[0]
 
-        return np.array([rng.uniform(lower, upper, n_dims) for _ in range(n_points)])
+        return np.array([self._rng.uniform(lower, upper, n_dims) for _ in range(n_points)])
