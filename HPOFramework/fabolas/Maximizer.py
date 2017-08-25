@@ -11,7 +11,6 @@ from scipy.stats import norm
 
 
 class BaseMaximizer(object):
-
     def __init__(self, objective_function, lower, upper, rng=None):
         """
         Interface for optimizers that maximizing the
@@ -41,7 +40,6 @@ class BaseMaximizer(object):
 
 
 class Direct(BaseMaximizer):
-
     def __init__(self, objective_function, lower, upper,
                  n_func_evals=400, n_iters=200, verbose=False):
         """
@@ -72,6 +70,7 @@ class Direct(BaseMaximizer):
     def _direct_acquisition_fkt_wrapper(self, acq_f):
         def _l(x, user_data):
             return -acq_f(np.array([x])), 0
+
         return _l
 
     def maximize(self):
@@ -86,10 +85,10 @@ class Direct(BaseMaximizer):
         """
         if self.verbose:
             x, _, _ = DIRECT.solve(self._direct_acquisition_fkt_wrapper(self.objective_func),
-                               l=[self.lower],
-                               u=[self.upper],
-                               maxT=self.n_iters,
-                               maxf=self.n_func_evals)
+                                   l=[self.lower],
+                                   u=[self.upper],
+                                   maxT=self.n_iters,
+                                   maxf=self.n_func_evals)
         else:
             fileno = sys.stdout.fileno()
             with os.fdopen(os.dup(fileno), 'wb') as stdout:
@@ -140,6 +139,7 @@ class BaseAcquisitionFunction(object):
             else:
                 a = foo(self, X, **kwargs)
             return a
+
         return wrapper
 
     @abc.abstractmethod
@@ -174,9 +174,7 @@ class BaseAcquisitionFunction(object):
         return json_data
 
 
-
 class LogEI(BaseAcquisitionFunction):
-
     def __init__(self, model, par=0.0, **kwargs):
 
         r"""
@@ -225,7 +223,7 @@ class LogEI(BaseAcquisitionFunction):
             (only if derivative=True)
         """
         if derivative:
-            raise Exception ("LogEI does not support derivative \
+            raise Exception("LogEI does not support derivative \
                 calculation until now")
             return
 
@@ -243,7 +241,7 @@ class LogEI(BaseAcquisitionFunction):
         for i in range(0, m.size):
             mu, sigma = m[i], s[i]
 
-        #    par_s = self.par * sigma
+            #    par_s = self.par * sigma
 
             # Degenerate case 1: first term vanishes
             if np.any(abs(f_min - mu) == 0):
@@ -287,7 +285,6 @@ class LogEI(BaseAcquisitionFunction):
 
 
 class InformationGain(BaseAcquisitionFunction):
-
     def __init__(self, model, lower, upper,
                  Nb=50, Np=400, sampling_acquisition=None,
                  sampling_acquisition_kw={"par": 0.0},
@@ -428,11 +425,11 @@ class InformationGain(BaseAcquisitionFunction):
         mu, var = self.model.predict(np.array(self.zb), full_cov=True)
 
         self.logP, self.dlogPdMu, self.dlogPdSigma, self.dlogPdMudMu = \
-                        epmgp.joint_min(mu, var, with_derivatives=True)
+            epmgp.joint_min(mu, var, with_derivatives=True)
 
         self.W = scipy.stats.norm.ppf(np.linspace(1. / (self.Np + 1),
-                                    1 - 1. / (self.Np + 1),
-                                    self.Np))[np.newaxis, :]
+                                                  1 - 1. / (self.Np + 1),
+                                                  self.Np))[np.newaxis, :]
 
         self.logP = np.reshape(self.logP, (self.logP.shape[0], 1))
 
@@ -448,8 +445,8 @@ class InformationGain(BaseAcquisitionFunction):
 
         dMM = dMdx.dot(dMdx.T)
         trterm = np.sum(np.sum(np.multiply(self.dlogPdMudMu, np.reshape(
-                        dMM, (1, dMM.shape[0], dMM.shape[1]))), 2), 1)[
-            :, np.newaxis]
+            dMM, (1, dMM.shape[0], dMM.shape[1]))), 2), 1)[
+                 :, np.newaxis]
 
         # add a second dimension to the arrays if necessary:
         logP = np.reshape(self.logP, (self.logP.shape[0], 1))
@@ -475,7 +472,6 @@ class InformationGain(BaseAcquisitionFunction):
     def dh_fun(self, x, derivative=False):
 
         if not (np.all(np.isfinite(self.lmb))):
-
             raise ValueError("lmb should not be infinite.")
 
         D = x.shape[1]
@@ -541,7 +537,6 @@ class InformationGain(BaseAcquisitionFunction):
 
 
 class InformationGainPerUnitCost(InformationGain):
-
     def __init__(self, model, cost_model,
                  lower, upper,
                  is_env_variable,
@@ -667,7 +662,7 @@ class InformationGainPerUnitCost(InformationGain):
                                          high=upper,
                                          size=(self.Nb, D))
             sampler = emcee.EnsembleSampler(self.Nb, D,
-                                        self.sampling_acquisition_wrapper)
+                                            self.sampling_acquisition_wrapper)
 
             self.zb, self.lmb, _ = sampler.run_mcmc(restarts, 50)
             if not np.any(np.isinf(self.lmb)):
@@ -683,7 +678,7 @@ class InformationGainPerUnitCost(InformationGain):
 
         # Project representer points to subspace
         proj = np.ones([self.zb.shape[0],
-                    self.upper[self.is_env == 1].shape[0]])
+                        self.upper[self.is_env == 1].shape[0]])
         proj *= self.upper[self.is_env == 1].shape[0]
         self.zb = np.concatenate((self.zb, proj), axis=1)
 

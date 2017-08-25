@@ -1,10 +1,8 @@
-
 import numpy as np
 import scipy.stats as sps
 
 
 class BasePrior(object):
-
     def __init__(self, rng=None):
         """
         Abstract base class to define the interface for priors
@@ -73,7 +71,6 @@ class BasePrior(object):
 
 
 class TophatPrior(BasePrior):
-
     def __init__(self, l_bound, u_bound, rng=None):
         """
         Tophat prior as it used in the original spearmint code.
@@ -156,7 +153,6 @@ class TophatPrior(BasePrior):
 
 
 class HorseshoePrior(BasePrior):
-
     def __init__(self, scale=0.1, rng=None):
         """
         Horseshoe Prior as it is used in spearmint
@@ -391,13 +387,12 @@ class NormalPrior(BasePrior):
         (D) np.array
             The gradient of the prior at theta.
         """
-        return (1 / (self.sigma * np.sqrt(2 * np.pi))) *\
+        return (1 / (self.sigma * np.sqrt(2 * np.pi))) * \
                (- theta / (self.sigma ** 2) * np.exp(- (theta ** 2) /
-                (2 * self.sigma ** 2)))
+                                                     (2 * self.sigma ** 2)))
 
 
 class EnvPrior(BasePrior):
-
     def __init__(self, n_dims, n_ls, n_lr, rng=None):
 
         if rng is None:

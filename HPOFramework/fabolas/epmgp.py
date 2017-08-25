@@ -1,4 +1,3 @@
-
 import numpy as np
 from scipy import special
 
@@ -82,7 +81,6 @@ def joint_min(mu, var, with_derivatives=False, **kwargs):
 
 
 def min_faktor(Mu, Sigma, k, gamma=1):
-
     D = Mu.shape[0]
     logS = np.zeros((D - 1,))
     # mean time first moment
@@ -97,10 +95,10 @@ def min_faktor(Mu, Sigma, k, gamma=1):
     for count in range(50):
         diff = 0
         for i in range(D - 1):
-            l = i if  i < k else i + 1
+            l = i if i < k else i + 1
             try:
                 M, V, P[i], MP[i], logS[i], d = lt_factor(k, l, M, V,
-                                                        MP[i], P[i], gamma)
+                                                          MP[i], P[i], gamma)
             except Exception as e:
                 raise
 
@@ -160,8 +158,8 @@ def min_faktor(Mu, Sigma, k, gamma=1):
         yield dlogZdMu
         dlogZdMudMu = -A
         yield dlogZdMudMu
-        dlogZdSigma = -A - 2 * np.outer(r, Ab.T) + np.outer(r, r.T)\
-                    + np.outer(btA.T, Ab.T)
+        dlogZdSigma = -A - 2 * np.outer(r, Ab.T) + np.outer(r, r.T) \
+                      + np.outer(btA.T, Ab.T)
         dlogZdSigma2 = np.zeros_like(dlogZdSigma)
         np.fill_diagonal(dlogZdSigma2, np.diagonal(dlogZdSigma))
         dlogZdSigma = 0.5 * (dlogZdSigma + dlogZdSigma.T - dlogZdSigma2)
@@ -170,7 +168,6 @@ def min_faktor(Mu, Sigma, k, gamma=1):
 
 
 def lt_factor(s, l, M, V, mp, p, gamma):
-
     cVc = (V[l, l] - 2 * V[s, l] + V[s, s]) / 2.0
     Vc = (V[:, l] - V[:, s]) / sq2
     cM = (M[l] - M[s]) / sq2
@@ -206,8 +203,8 @@ def lt_factor(s, l, M, V, mp, p, gamma):
                             "propagation in entropy search. "
                             "Resulting variance contains NaN")
         # % there is a problem here, when z is very large
-        logS = lP - 0.5 * (np.log(beta) - np.log(pnew) - np.log(cVnic))\
-             + (alpha * alpha) / (2 * beta) * cVnic
+        logS = lP - 0.5 * (np.log(beta) - np.log(pnew) - np.log(cVnic)) \
+               + (alpha * alpha) / (2 * beta) * cVnic
 
     elif exit_flag == -1:
         d = np.NAN
@@ -231,6 +228,7 @@ def lt_factor(s, l, M, V, mp, p, gamma):
         Mnew = M + (dmp - cM * dp) / (1 + dp * cVc) * Vc
         logS = 0
     return Mnew, Vnew, pnew, mpnew, logS, d
+
 
 """
 log_relative_gauss

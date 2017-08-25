@@ -78,6 +78,7 @@ class BaseModel(object):
             assert len(X.shape) == 2
             assert len(y.shape) == 1
             return func(self, X, y, *args, **kwargs)
+
         return func_wrapper
 
     def _check_shapes_predict(func):
@@ -116,7 +117,6 @@ class BaseModel(object):
 
 
 class GaussianProcessMCMC(BaseModel):
-
     def __init__(self, kernel, prior=None, n_hypers=20, chain_length=2000, burnin_steps=2000,
                  normalize_output=False, normalize_input=True,
                  rng=None, lower=None, upper=None, noise=-8):
@@ -250,7 +250,6 @@ class GaussianProcessMCMC(BaseModel):
 
         self.models = []
         for sample in self.hypers:
-
             # Instantiate a GP for each hyperparameter configuration
             kernel = deepcopy(self.kernel)
             kernel.pars = np.exp(sample[:-1])
@@ -382,7 +381,6 @@ class GaussianProcessMCMC(BaseModel):
 
 
 class GaussianProcess(BaseModel):
-
     def __init__(self, kernel, prior=None,
                  noise=1e-3, use_gradients=False,
                  normalize_output=False,
@@ -801,7 +799,6 @@ class FabolasGPMCMC(GaussianProcessMCMC):
 
         self.models = []
         for sample in self.hypers:
-
             # Instantiate a GP for each hyperparameter configuration
             kernel = deepcopy(self.kernel)
             kernel.pars = np.exp(sample[:-1])
@@ -826,7 +823,6 @@ class FabolasGP(GaussianProcess):
                  noise=1e-3, use_gradients=False,
                  normalize_output=False,
                  lower=None, upper=None, rng=None):
-
         self.basis_function = basis_function
         super(FabolasGP, self).__init__(kernel=kernel,
                                         prior=prior,
