@@ -1,8 +1,10 @@
 import datetime
 from itertools import product
+
 import numpy as np
 
-from .FabolasHelper import FabolasHelper
+from Framework.fabolas.Fabolas import Fabolas
+
 
 class GridSearchOptimizer(object):
     def __init__(self):
@@ -82,7 +84,7 @@ class FabolasOptimizer(object):
 
     def prepare(self, pipeline_elements):
         self._fabolas_params.update({'pipeline_elements': pipeline_elements})
-        self._fabolas = FabolasHelper(**self._fabolas_params)
+        self._fabolas = Fabolas(**self._fabolas_params)
 
     def next_config_generator(self):
         yield from self._fabolas.calc_config()

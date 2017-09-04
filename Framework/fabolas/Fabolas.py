@@ -2,11 +2,12 @@ import numpy as np
 import george
 import numbers
 
-from .fabolas.GPMCMC import FabolasGPMCMC
-from .fabolas.Priors import EnvPrior
-from .fabolas.Maximizer import InformationGainPerUnitCost, Direct, MarginalizationGPMCMC
+from Framework.fabolas.GPMCMC import FabolasGPMCMC
+from Framework.fabolas.Priors import EnvPrior
+from Framework.fabolas.Maximizer import InformationGainPerUnitCost, Direct, MarginalizationGPMCMC
 
-class FabolasHelper:
+
+class Fabolas:
     def __init__(
             self,
             n_min_train_data,
