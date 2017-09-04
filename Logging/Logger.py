@@ -1,150 +1,226 @@
+import datetime
 import inspect
 from enum import Enum
 from functools import total_ordering
 
-from pymongo import MongoClient
-from pymongo import ASCENDING
-import datetime
 
-""" Logging is a simple way to emit and store logs. 
+""" Logging is a simple way to emit and store logs.
 
-    The default LogLevel is WARN. It should only be increased 
+    The default LogLevel is WARN. It should only be increased
     (to info or debug) if you need more detailed information,
     because extensive logging significantly impacts performance
     and clutters the database. The logs can also be printed on
     the console by setting print_to_console to True.
-    
-    Usage: 
+
+    Usage:
     1) Import with
         from Logging import Logger
     2) Log with
-        Logger.debug('Logging message!')
+        logger = Logger()
+        logger.debug('Logging message!')
 """
 
 
-# Create the photon_log_db
-client = MongoClient('localhost', 27017)
-log_db = client.your_collection
+class Singleton:
+    """
+    A non-thread-safe helper class to ease implementing singletons.
+    This should be used as a decorator -- not a metaclass -- to the
+    class that should be a singleton.
+
+    The decorated class can define one `__init__` function that
+    takes only the `self` argument. Also, the decorated class cannot be
+    inherited from. Other than that, there are no restrictions that apply
+    to the decorated class.
+
+    To get the singleton instance, use the `Instance` method. Trying
+    to use `__call__` will result in a `TypeError` being raised.
+
+    from https://stackoverflow.com/questions/31875/is-there-a-simple-elegant-way-to-define-singletons
+    """
+
+    def __init__(self, decorated):
+        self._decorated = decorated
+
+    def __call__(self):
+        """
+        Returns the singleton instance. Upon its first call, it creates a
+        new instance of the decorated class and calls its `__init__` method.
+        On all subsequent calls, the already created instance is returned.
+
+        """
+        try:
+            return self._instance
+        except AttributeError:
+            self._instance = self._decorated()
+            return self._instance
+
+    def __instancecheck__(self, inst):
+        return isinstance(inst, self._decorated)
 
 
-# All collections should probably be capped so that no manual log-pruning is necessary
-# like info_log_collection = log_db.createCollection("info_log", capped=True, size=15000)?!
-debug_log_collection = log_db.debug_log
-debug_log_collection.ensure_index([('logged_date', ASCENDING)])
+@Singleton
+class Logger:
 
-info_log_collection = log_db.info_log
-info_log_collection.ensure_index([('logged_date', ASCENDING)])
+    def __init__(self):
 
-warn_log_collection = log_db.warn_log
-warn_log_collection.ensure_index([('logged_date', ASCENDING)])
-
-error_log_collection = log_db.error_log
-error_log_collection.ensure_index([('logged_date', ASCENDING)])
+        # handle multiple instances of hyperpipe
+        self.loggers = []
 
 
+        # Set default LogLevel
+        # Should be LogLevel.WARN!
+        # Is LogLevel.DEBUG now only for testing purposes
+        self._log_level = self.LogLevel.INFO
 
-# Definition of LogLevels, the lower the number, the stronger the logging will be
-@total_ordering
-class LogLevel(Enum):
-    DEBUG = 0
-    INFO = 1
-    WARN = 2
-    ERROR = 3
-    def __lt__(self, other):
-        if self.__class__ is other.__class__:
-            return self.value < other.value
-        return NotImplemented
+        # Should the log also be printed to the console?
+        # Recommendation: Set to True during development, false in production-environment
+        self._print_to_console = True
+        self._print_to_slack = False
+        self._print_to_txt = True
+        self._logfile_name = 'phot on.log'
+        with open(self._logfile_name, "w") as text_file:
+            text_file.write('PHOTON LOGFILE - ' + str(datetime.datetime.utcnow()))
 
+    def set_print_to_console(self, status: bool):
+        self._print_to_console = status
 
-# Set default LogLevel
-# Should be LogLevel.WARN!
-# Is LogLevel.DEBUG now only for testing purposes
-_log_level = LogLevel.DEBUG
-
-
-# Should the log also be printed to the console?
-# Recommendation: Set to True during development, false in production-environment
-_print_to_console = True
+    def set_print_to_slack(self, status: bool):
+        self._print_to_console = status
 
 
-def set_print_to_console(status: bool):
-    _print_to_console = status
+    def set_log_level(self, level):
+        """" Use this method to change the log level. """
+        self._log_level = level
+
+    def set_verbosity(self, verbose=0):
+        """ Use this method to change the log level from verbosity attribute of hyperpipe. """
+        if verbose == 0:
+            self.set_log_level(self.LogLevel.INFO)
+        elif verbose == 1:
+            self.set_log_level(self.LogLevel.VERBOSE)
+        elif verbose == 2:
+            self.set_log_level(self.LogLevel.DEBUG)
+        else:
+            self.set_log_level(self.LogLevel.WARN)
 
 
-def set_log_level(level: LogLevel):
-    """" Use this method to change the log level. """
-    _log_level = level
+        # Debug should be used for information that may be useful for program-debugging (most information)
 
+    # i.e. training epochs of neural nets
+    def debug(self, message: str):
+        if (self._log_level <= self.LogLevel.DEBUG):
+            self._distribute_log(message,
+                                      'DEBUG')
 
-# Debug should be used for information that may be useful for program-debugging
-def debug(message: str):
-    if(_log_level <= LogLevel.DEBUG):
-        _insert_log_into_database(message, debug_log_collection, 'DEBUG')
+    # Verbose should be used if something interesting (but uncritically) happened
+    # i.e. every hp config that is tested
+    def verbose(self, message: str):
+        if (self._log_level <= self.LogLevel.VERBOSE):
+            self._distribute_log(message,
+                                      'VERBOSE')
 
+    # Info should be used if something interesting (but uncritically) happened
+    # i.e. most basic info on photon hyperpipe
+    def info(self, message: str):
+        if (self._log_level <= self.LogLevel.INFO):
+            self._distribute_log(message,
+                                      'INFO')
 
-# Info should be used if something interesting (but uncritically) happened,
-# like the results of a computation
-def info(message: str):
-    if(_log_level <= LogLevel.INFO):
-        _insert_log_into_database(message, info_log_collection, 'INFO')
+    # Something may have gone wrong? Use warning
+    def warn(self, message: str):
+        if (self._log_level <= self.LogLevel.WARN):
+            self._distribute_log(message,
+                                      'WARN')
 
+    # Something broke down. Error should be used if something unexpected happened
+    def error(self, message: str):
+        if (self._log_level <= self.LogLevel.ERROR):
+            self._distribute_log(message,
+                                      'ERROR')
 
-# Something may have gone wrong? Use warning
-def warn(message: str):
-    if (_log_level <= LogLevel.WARN):
-        _insert_log_into_database(message, warn_log_collection, 'WARN')
+    # Takes a message and inserts it into the given collection
+    # Handles possible console-logging
+    def _distribute_log(self, message: str, log_type: str):
 
+        entry = self._generate_log_entry(message, log_type)
 
-# Something broke down. Error should be used if something unexpected happened
-def error(message: str):
-    if (_log_level <= LogLevel.ERROR):
-        _insert_log_into_database (message, error_log_collection, 'ERROR')
+        if self._print_to_console:
+            self._print_entry(entry)
+        if self._print_to_txt:
+            self._write_to_file(entry)
+        if self._print_to_slack:
+            self._send_to_slack(entry)
 
+    def _send_to_slack(self, entry: dict):
+        from slackclient import SlackClient
+        from os import environ
 
-# Takes a message and inserts it into the given collection
-# Handles possible console-logging
-def _insert_log_into_database(message: str, collection, log_type: str):
-    entry = _generate_log_entry(message, log_type);
-    collection.insert(entry)
+        slack_token = "xoxp-113254200629-113099992147-232630779537-e7947c07faa87ab4567cdb8d6719b81c"
 
-    if (_print_to_console):
-        _print_entry(entry);
+        sc = SlackClient(slack_token)
 
+        sc.api_call(
+            "chat.postMessage",
+            channel="#photon-log",
+            text="{}: {}".format(entry['log_type'], entry['message'])
+        )
 
-def _print_entry(entry: dict):
-    print ('['+entry['logged_date'].strftime('%d %b %Y - %H:%M:%S.%f')+']' +
-           ' ' + entry['called_by'] +
-           ' ' + entry['log_type'] +
-           ' ' + entry['message'])
+    def _print_entry(self, entry: dict):
+        date_str = entry['logged_date'].strftime("%Y-%m-%d %H:%M:%S")
+        print("{0} UTC - {1}: {2}".format(date_str, entry['log_type'], entry['message']))
 
+    def _write_to_file(self, entry: dict):
+        with open(self._logfile_name, "a", newline='\n') as text_file:
+            text_file.write('\n')
+            text_file.write(str(entry['message']))
 
-def _generate_log_entry(message: str, log_type: str):
-    """Todo: Get current user from user-service and add username to log_entry"""
-    log_entry = {}
-    log_entry['log_type'] = log_type
-    log_entry['logged_date'] = datetime.datetime.utcnow()
-    log_entry['message'] = message
-    if (inspect.stack()[3][3]):
-        # If the call stack is changed the first array selector has to be changed
-        log_entry['called_by'] = inspect.stack()[3][3];
-    else:
-        log_entry['called_by'] = 'Unknown caller'
+    def _generate_log_entry(self, message: str, log_type: str):
+        """Todo: Get current user from user-service and add username to log_entry"""
+        log_entry = {}
+        log_entry['log_type'] = log_type
+        log_entry['logged_date'] = datetime.datetime.utcnow()
+        log_entry['message'] = message
+        if (inspect.stack()[3][3]):
+            # If the call stack is changed the first array selector has to be changed
+            log_entry['called_by'] = inspect.stack()[3][3]
+        else:
+            log_entry['called_by'] = 'Unknown caller'
 
-    return log_entry
+        return log_entry
+
+    def store_logger_names(self, name):
+        #print('Appending name ', name)
+
+        return self.loggers.append(name)
+
+    # Definition of LogLevels, the lower the number, the stronger the logging will be
+    @total_ordering
+    class LogLevel(Enum):
+        ERROR = 4
+        WARN = 3
+        INFO = 2
+        VERBOSE = 1
+        DEBUG = 0
+
+        def __lt__(self, other):
+            if self.__class__ is other.__class__:
+                return self.value < other.value
+            return NotImplemented
 
 
 if __name__ == "__main__":
-    set_log_level(LogLevel.DEBUG)
+    logger = Logger()
+    logger.set_verbosity(2)
 
-    debug('Test-Log debug message')
-    info('Test-Log info message')
-    warn('Test-Log warn message')
-    error('Test-Log error message')
+    logger.debug('Test-Log debug message')
+    logger.info('Test-Log info message')
+    logger.warn('Test-Log warn message')
+    logger.error('Test-Log error message')
 
     # Starting here, only warn and error logs
     # should be created
-    set_log_level(LogLevel.WARN)
-    debug('Test-Log debug message')
-    info('Test-Log info message')
-    warn('Test-Log warn message')
-    error('Test-Log error message')
+    logger.set_verbosity(0)
+    logger.debug('Test-Log debug message')
+    logger.info('Test-Log info message')
+    logger.warn('Test-Log warn message')
+    logger.error('Test-Log error message')

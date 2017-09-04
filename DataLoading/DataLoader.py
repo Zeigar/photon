@@ -1,12 +1,8 @@
-import pandas as pd
-import nibabel as nib
 import os
 import numpy as np
 import scipy.io as spio
-import gzip
-
-
-#Todo: make sure that each class is returning an pandas DataFrame Object
+import panda as pd
+import nibabel as nib
 
 class MatLoader(object):
 
@@ -15,7 +11,7 @@ class MatLoader(object):
         if 'var_name' in kwargs:
             var_name = kwargs.get('var_name')
             mat_data = mat_data[var_name]
-        return pd.DataFrame(data=mat_data)
+        return mat_data
 
     def load_mat(self, filename):
         '''
@@ -63,7 +59,7 @@ class CsvLoader(object):
 class XlsxLoader(object):
 
     def __call__(self, filename, **kwargs):
-        return pd.read_excel(filename)
+        return pd.read_excel(filename, **kwargs)
 
 
 class NiiLoader(object):
