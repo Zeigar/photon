@@ -89,6 +89,12 @@ class Fabolas:
 
         kernel *= env_kernel
 
+        # Take 3 times more samples than we have hyperparameters
+        if n_hypers < 2*len(kernel):
+            n_hypers = 3 * len(kernel)
+            if n_hypers % 2 == 1:
+                n_hypers += 1
+
         prior = EnvPrior(
             len(kernel) + 1,
             n_ls=n_dims,
