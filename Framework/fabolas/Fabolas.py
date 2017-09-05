@@ -204,7 +204,7 @@ class Fabolas:
         self._model_objective.train(self._X, self._Y, do_optimize=True)
         yield self._create_param_dict(*self.get_incumbent())
 
-    def process_result(self, score, cost):
+    def process_result(self, config, subset_frac, score, cost):
         # We're done
         if self._it >= self._num_iterations:
             return
@@ -212,11 +212,16 @@ class Fabolas:
         score = 1-score
         # init-loop
         if self._it < self._n_init:
+            config = self._get_params_from_dict(config)
+            self._X.append(np.append(config, self._transform(self._s_max/subset_frac)))
             self._Y.append(np.log(score))  # Model the target function on a logarithmic scale
             self._cost.append(np.log(cost))  # Model the cost on a logarithmic scale
 
         # opt-loop
         else:
+            config = np.array(self._get_params_from_dict(config))
+            config = np.concatenate(config, subset_frac)
+            self._X = np.concatenate((self._X, config[None, :]), axis=0)
             self._Y = np.concatenate((self._Y, np.log(np.array([score]))), axis=0)  # Model the target function on a logarithmic scale
             self._cost = np.concatenate((self._cost, np.log(np.array([cost]))), axis=0)  # Model the cost function on a logarithmic scale
 
@@ -236,10 +241,16 @@ class Fabolas:
         )
         return self._param_dict, s
 
+    def _get_params_from_dict(self, pdict):
+        params = []
+        for key in self._number_param_keys:
+            params.append(pdict[key])
+        return params
+
+
     def _init_models(self):
         s = self._subsets[self._it % len(self._subsets)]
         x = self._init_random_uniform(self._lower, self._upper, 1)[0]
-        self._X.append(np.append(x, self._transform(self._s_max/s)))
         return x, s
 
     def _optimize_config(self):
@@ -265,7 +276,6 @@ class Fabolas:
             os.dup2(stdout, 1)
 
         s = self._s_max/self._retransform(new_x[-1])
-        self._X = np.concatenate((self._X, new_x[None, :]), axis=0)
         Logger().debug("Fabolas: config generation done for this step")
 
         return new_x[:-1], s

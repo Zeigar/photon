@@ -32,7 +32,7 @@ class GridSearchOptimizer(object):
                 param_dict.update(item)
             yield param_dict, 1
 
-    def evaluate_recent_performance(self, config, performance):
+    def evaluate_recent_performance(self, config, performance, _):
         # influence return value of next_config
         pass
 
@@ -89,10 +89,10 @@ class FabolasOptimizer(object):
     def next_config_generator(self):
         yield from self._fabolas.calc_config()
 
-    def evaluate_recent_performance(self, _, performance):
+    def evaluate_recent_performance(self, config, performance, subset_frac):
         score = performance[1]
         cost = performance[2]
-        self._fabolas.process_result(score, cost)
+        self._fabolas.process_result(config, subset_frac, score, cost)
 
 
 # class AnyHyperparamOptimizer(object):

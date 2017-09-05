@@ -293,6 +293,10 @@ class Hyperpipe(BaseEstimator):
                                     np.random.choice(cv_test, int(len(cv_test)/subset_frac), False),
                                     cv_train
                                 ))
+                            Logger().verbose(
+                                'using subset 1/'+str(subset_frac)+' to train the model'
+                                ' ('+str(len(specific_cv_iter[0][0]))+' items)'
+                            )
                         else:
                             specific_cv_iter = cv_iter
 
@@ -324,7 +328,7 @@ class Hyperpipe(BaseEstimator):
 
 
                         # 3. inform optimizer about performance
-                        self.optimizer.evaluate_recent_performance(specific_config, config_score)
+                        self.optimizer.evaluate_recent_performance(specific_config, config_score, subset_frac)
 
                         # Print Result for config
                         Logger().debug('...done:')
