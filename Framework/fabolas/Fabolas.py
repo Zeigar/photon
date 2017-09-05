@@ -5,6 +5,7 @@ import numbers
 from Framework.fabolas.GPMCMC import FabolasGPMCMC
 from Framework.fabolas.Priors import EnvPrior
 from Framework.fabolas.Maximizer import InformationGainPerUnitCost, Direct, MarginalizationGPMCMC
+from Logging.Logger import Logger
 
 
 class Fabolas:
@@ -180,21 +181,21 @@ class Fabolas:
         )
 
     def calc_config(self):
-        print('Fabolas: Starting initialization')
+        Logger().debug('Fabolas: Starting initialization')
         for self._it in range(0, self._n_init):
-            print('Fabolas: step ' + str(self._it) + ' (init)')
+            Logger().debug('Fabolas: step ' + str(self._it) + ' (init)')
             yield self._create_param_dict(*self._init_models())
 
         self._X = np.array(self._X)
         self._Y = np.array(self._Y)
         self._cost = np.array(self._cost)
 
-        print('Fabolas: Starting optimization')
+        Logger().debug('Fabolas: Starting optimization')
         for self._it in range(self._n_init, self._num_iterations):
-            print('Fabolas: step ' + str(self._it) + ' (opt)')
+            Logger().debug('Fabolas: step ' + str(self._it) + ' (opt)')
             yield self._create_param_dict(*self._optimize_config())
 
-        print('Fabolas: Final config')
+        Logger().debug('Fabolas: Final config')
         self._model_objective.train(self._X, self._Y, do_optimize=True)
         yield self._create_param_dict(*self.get_incumbent())
 
@@ -238,14 +239,20 @@ class Fabolas:
 
     def _optimize_config(self):
         # Train models
+        Logger().debug("Fabolas: Train model_objective")
         self._model_objective.train(self._X, self._Y, do_optimize=True)
+        Logger().debug("Fabolas: Train model_cost")
         self._model_cost.train(self._X, self._cost, do_optimize=True)
 
         # Maximize acquisition function
+        Logger().debug("Fabolas: Update acquisition func")
         self._acquisition_func.update(self._model_objective, self._model_cost)
+        Logger().debug("Fabolas: Generate new config by maximizing")
+
         new_x = self._maximizer.maximize()
         s = self._s_max/self._retransform(new_x[-1])
         self._X = np.concatenate((self._X, new_x[None, :]), axis=0)
+        Logger().debug("Fabolas: config generation done for this step")
 
         return new_x[:-1], s
 

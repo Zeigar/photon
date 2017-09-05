@@ -1,6 +1,5 @@
 import abc
 import numpy as np
-import logging
 import george
 import emcee
 from scipy import optimize
@@ -8,8 +7,7 @@ from scipy import optimize
 from copy import deepcopy
 from . import normalization
 
-logger = logging.getLogger(__name__)
-
+from Logging.Logger import Logger
 
 class BaseModel(object):
     __metaclass__ = abc.ABCMeta
@@ -481,7 +479,7 @@ class GaussianProcess(BaseModel):
             self.hypers = self.gp.kernel[:]
             self.hypers = np.append(self.hypers, np.log(self.noise))
 
-        logger.debug("GP Hyperparameters: " + str(self.hypers))
+        Logger().debug("Fabolas.GaussianProcess: GP Hyperparameters: " + str(self.hypers))
 
         self.gp.compute(self.X, yerr=np.sqrt(self.noise))
 
@@ -578,7 +576,7 @@ class GaussianProcess(BaseModel):
                 results = optimize.minimize(self.nll, p0)
                 theta = results.x
             except ValueError:
-                logging.error("Could not find a valid hyperparameter configuration! Use initial configuration")
+                Logger().error("Fabolas.GaussianProcess: Could not find a valid hyperparameter configuration! Use initial configuration")
                 theta = p0
 
         return theta

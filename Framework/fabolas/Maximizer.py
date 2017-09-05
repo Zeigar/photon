@@ -9,6 +9,8 @@ from . import epmgp
 from copy import deepcopy
 from scipy.stats import norm
 
+from Logging.Logger import Logger
+
 
 class BaseMaximizer(object):
     def __init__(self, objective_function, lower, upper, rng=None):
@@ -410,7 +412,7 @@ class InformationGain(BaseAcquisitionFunction):
             if not np.any(np.isinf(self.lmb)):
                 break
             else:
-                print("Infinity")
+                Logger().debug("Fabolas.InformationGain: Infinity")
 
         if len(self.zb.shape) == 1:
             self.zb = self.zb[:, None]
@@ -668,7 +670,7 @@ class InformationGainPerUnitCost(InformationGain):
             if not np.any(np.isinf(self.lmb)):
                 break
             else:
-                print("Infinity")
+                Logger().debug("Fabolas.InformationGainPerUnitCost: Infinity")
         if np.any(np.isinf(self.lmb)):
             raise ValueError("Could not sample valid representer points! LogEI is -infinity")
         if len(self.zb.shape) == 1:
