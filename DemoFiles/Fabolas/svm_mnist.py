@@ -16,16 +16,15 @@ cv = KFold(n_splits=3, shuffle=True, random_state=0)
 
 n_train_data = len(train_data)
 pipe = Hyperpipe(
-    'god',
+    'mnistsvm',
     cv,
     optimizer='fabolas',
     optimizer_params={
         'n_min_train_data': int(n_train_data/9000), 'n_train_data': n_train_data
     },
+    metrics=['accuracy'],
     verbose=2
 )
-pipe.add(PipelineElement.create('svc', {'C': [-10, 10, float], 'gamma': [-10, 10, float]}))
+pipe += PipelineElement.create('svc', {'C': [-10, 10, float], 'gamma': [-10, 10, float]})
 
 pipe.fit(train_data, train_labels)
-predicted_labels = pipe.predict(test_data)
-print(classification_report(predicted_labels, test_labels))
