@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+
+# Add project_root to path s.t. we can run this script from terminal
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.dirname(__file__) + '/' + '../..'))
 
 from Framework.PhotonBase import Hyperpipe, PipelineElement
 from sklearn.model_selection import KFold
