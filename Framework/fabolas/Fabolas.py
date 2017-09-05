@@ -33,15 +33,17 @@ class Fabolas:
         self._lower = []
         self._upper = []
         self._number_param_keys = []
+        param_types = []
         self._param_dict = {}
         for key, val in pipeline_elements[0].hyperparameters.items():
             key = pipeline_elements[0].name + '__' + key
             if isinstance(val, list):
-                if not len(val) >= 2 \
+                if not len(val) >= 3 \
                         or not isinstance(val[0], numbers.Number)\
-                        or not isinstance(val[1], numbers.Number):
+                        or not isinstance(val[1], numbers.Number)\
+                        or not (val[2] is int or val[2] is float):
                     raise ValueError(
-                        "Hyperparam '"+key+"' is not a list with [lowerbound, upperbound, *]"
+                        "Hyperparam '"+key+"' is not a list with [lowerbound, upperbound, int/float]"
                     )
 
                 if val[0] > val[1]:
@@ -52,7 +54,10 @@ class Fabolas:
                 self._number_param_keys.append(key)
                 self._lower.append(val[0])
                 self._upper.append(val[1])
+                param_types.append(val[2])
             self._param_dict.update({key: val})
+
+        self._param_int_indices = np.where(np.array(param_types) == int)[0]
 
         n_dims = len(self._lower)
         self._lower = np.array(self._lower)
@@ -198,11 +203,11 @@ class Fabolas:
         Logger().debug('Fabolas: Starting optimization')
         for self._it in range(self._n_init, self._num_iterations):
             Logger().debug('Fabolas: step ' + str(self._it) + ' (opt)')
-            yield self._create_param_dict(*self._optimize_config())
+            yield self._create_param_dict(*self._adjust_param_types(self._optimize_config()))
 
         Logger().debug('Fabolas: Final config')
         self._model_objective.train(self._X, self._Y, do_optimize=True)
-        yield self._create_param_dict(*self.get_incumbent())
+        yield self._create_param_dict(*self._adjust_param_types(self.get_incumbent()))
 
     def process_result(self, config, subset_frac, score, cost):
         # We're done
@@ -231,6 +236,11 @@ class Fabolas:
             self._model_objective, self._X[:, :-1], proj_value=1
         )
         return final_config[:-1].tolist(), 1  # subset is the whole data-set
+
+    def _adjust_param_types(self, params):
+        for i in self._param_int_indices:
+            params[i] = int(np.round(params[i]))
+        return params
 
     def _create_param_dict(self, params, s):
         self._param_dict.update(
