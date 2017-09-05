@@ -2,6 +2,9 @@ import numpy as np
 import george
 import numbers
 
+import os
+import sys
+
 from Framework.fabolas.GPMCMC import FabolasGPMCMC
 from Framework.fabolas.Priors import EnvPrior
 from Framework.fabolas.Maximizer import InformationGainPerUnitCost, Direct, MarginalizationGPMCMC
@@ -21,10 +24,12 @@ class Fabolas:
             chain_length=100,
             n_hypers=12,
             rng=None,
+            verbose_maximizer=False,
             **_
     ):
         assert n_init <= num_iterations, "Number of initial design point has to be <= than the number of iterations"
 
+        self._verbose_maximizer = verbose_maximizer
         self._lower = []
         self._upper = []
         self._number_param_keys = []
@@ -249,7 +254,16 @@ class Fabolas:
         self._acquisition_func.update(self._model_objective, self._model_cost)
         Logger().debug("Fabolas: Generate new config by maximizing")
 
+        stdout = None
+        if not self._verbose_maximizer:
+            Logger().debug("Fabolas: Maximizer-Output is suppressed")
+            devnull = open(os.devnull, "w")
+            stdout = os.dup(sys.stdout.fileno())
+            os.dup2(devnull.fileno(), 1)
         new_x = self._maximizer.maximize()
+        if not stdout is None:
+            os.dup2(stdout, 1)
+
         s = self._s_max/self._retransform(new_x[-1])
         self._X = np.concatenate((self._X, new_x[None, :]), axis=0)
         Logger().debug("Fabolas: config generation done for this step")
