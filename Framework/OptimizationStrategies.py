@@ -92,7 +92,7 @@ class FabolasOptimizer(object):
     def evaluate_recent_performance(self, config, performance, subset_frac):
         score = performance[1]
         cost = performance[2]
-        self._fabolas.process_result(config, subset_frac, score, cost)
+        self._fabolas.process_result(config, int(subset_frac), score, cost)
 
 
 # class AnyHyperparamOptimizer(object):

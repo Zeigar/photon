@@ -288,7 +288,7 @@ class Fabolas:
         s = self._s_max/self._retransform(new_x[-1])
         Logger().debug("Fabolas: config generation done for this step")
 
-        return new_x[:-1], s
+        return new_x[:-1], int(s)
 
     def _projected_incumbent_estimation(self, model, X, proj_value=1):
         projection = np.ones([X.shape[0], 1]) * proj_value
