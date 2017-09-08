@@ -9,10 +9,9 @@ sys.path.append(os.path.abspath(os.path.dirname(__file__) + '/' + '../..'))
 from sklearn.preprocessing import LabelEncoder
 from Framework.PhotonBase import Hyperpipe, PipelineElement
 import numpy as np
-from .photonDB import photonDB
+from photonDB import photonDB
 from sklearn.model_selection import ShuffleSplit
-from .keras_utils import get_rois
-import os
+from keras_utils import get_rois
 
 os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
