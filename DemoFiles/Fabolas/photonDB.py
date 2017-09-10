@@ -17,8 +17,8 @@ class photonDB(object):
             from sshtunnel import SSHTunnelForwarder
             MONGO_HOST = '141.2.203.64'
             MONGO_PORT = '22'
-            MONGO_USER = 'christoph'
-            MONGO_SSHPATH = sshpath + '.ssh/id_rsa'
+            MONGO_USER = 'hennig'
+            MONGO_SSHPATH = sshpath + '.ssh/id_rsa-trap-mongodb'
 
             #Open SSH Tunnel for Mongodb
             server = SSHTunnelForwarder(
