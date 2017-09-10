@@ -5,29 +5,19 @@ from random import randint
 from keras.optimizers import Optimizer
 from keras import backend as K
 
-#path = 0: home pc
-#path = 1: ukm pc
-#path = 2: titania
-#path = 3: nils pc
+#pc = 0: home pc
+#pc = 1: titania
 
-pc = 2
+pc = 1
 
 if pc == 0:
-    path = '/home/christoph/MRTDaten/'
-    sshpath = '/home/christoph/'
+    path = '/home/henningj/Documents/MRTDaten/'
+    sshpath = '/home/henningj/'
     pathaal = path
 if pc == 1:
-    path = '/home/calbers/MRTDaten/'
-    sshpath = '/home/calbers/'
+    path = '/home/hjanssen/Schreibtisch/Scra'
+    sshpath = '/spm-data/Scratch/spielwiese_henning/MRTDaten/'
     pathaal = path
-if pc == 2:
-    path = '/home/calbers/media/disk/_home_christoph_MRTDaten/'
-    sshpath = '/home/calbers/'
-    pathaal = path
-if pc == 3:
-    path = '/home/nils/data/vbm_bipolar/AllStudies_GM_VBM8_renamed/'
-    sshpath = '/home/christoph/'
-    pathaal = '/home/nils/data/'
 
 def get_rois(atlas='aal', rois=[]):
     if atlas.lower() == 'aal':
