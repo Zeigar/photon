@@ -215,7 +215,7 @@ class Fabolas:
         Logger().debug('Fabolas: Starting initialization')
         for self._it in range(0, self._n_init):
             Logger().debug('Fabolas: step ' + str(self._it) + ' (init)')
-            yield self._create_param_dict(*self._init_models())
+            yield self._create_param_dict(self._init_models())
 
         self._X = np.array(self._X)
         self._Y = np.array(self._Y)
@@ -224,11 +224,11 @@ class Fabolas:
         Logger().debug('Fabolas: Starting optimization')
         for self._it in range(self._n_init, self._num_iterations):
             Logger().debug('Fabolas: step ' + str(self._it) + ' (opt)')
-            yield self._create_param_dict(*self._adjust_param_types(self._optimize_config()))
+            yield self._create_param_dict(self._optimize_config())
 
         Logger().debug('Fabolas: Final config')
         self._model_objective.train(self._X, self._Y, do_optimize=True)
-        yield self._create_param_dict(*self._adjust_param_types(self.get_incumbent()))
+        yield self._create_param_dict(self.get_incumbent())
 
     def process_result(self, config, subset_frac, score, cost):
         # We're done
@@ -268,11 +268,13 @@ class Fabolas:
             params[i] = int(np.round(params[i]))
         return params
 
-    def _create_param_dict(self, params, s):
+    def _create_param_dict(self, params):
+        params, s = params
+        params = self._adjust_param_types(np.exp(params))
         self._param_dict.update(
             dict(zip(
                 self._number_param_keys,
-                np.exp(params)
+                params
             ))
         )
         return self._param_dict, s
@@ -281,7 +283,7 @@ class Fabolas:
         params = []
         for key in self._number_param_keys:
             params.append(pdict[key])
-        return params
+        return np.log(params)
 
 
     def _init_models(self):
@@ -335,11 +337,11 @@ class Fabolas:
         if self._log['incumbents']:
             if self._it < self._n_init:
                 best_i = np.argmin(self._Y)
-                l['incumbents'], _ = self._create_param_dict(self._X[best_i][:-1], 1)
+                l['incumbents'], _ = self._create_param_dict((self._X[best_i][:-1], 1))
                 l['incumbents_estimated_performance'] = -1
             else:
                 inc, inc_val = self._projected_incumbent_estimation(self._model_objective, self._X[:, :-1])
-                l['incumbents'], _ = self._create_param_dict(*self._adjust_param_types(inc[:-1]), 1)
+                l['incumbents'], _ = self._create_param_dict(inc[:-1], 1)
                 l['incumbents_estimated_performance'] = inc_val
 
         with open(os.path.join(
