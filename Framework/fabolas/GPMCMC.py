@@ -4,6 +4,9 @@ import george
 import emcee
 from scipy import optimize
 
+from multiprocessing import Pool, cpu_count
+from functools import partial
+
 from copy import deepcopy
 from . import normalization
 
@@ -116,7 +119,7 @@ class BaseModel(object):
 
 class GaussianProcessMCMC(BaseModel):
     def __init__(self, kernel, prior=None, n_hypers=20, chain_length=2000, burnin_steps=2000,
-                 normalize_output=False, normalize_input=True,
+                 normalize_output=False, normalize_input=True, pool_size=-1,
                  rng=None, lower=None, upper=None, noise=-8):
         """
         GaussianProcess model based on the george GP library that uses MCMC
@@ -154,6 +157,11 @@ class GaussianProcessMCMC(BaseModel):
             self.rng = np.random.RandomState(np.random.randint(0, 10000))
         else:
             self.rng = rng
+
+        if pool_size < 0:
+            pool_size = min(n_hypers, cpu_count())
+            pool_size = max(pool_size, 1)
+        self.pool_size = pool_size
 
         self.kernel = kernel
         self.prior = prior
@@ -246,23 +254,29 @@ class GaussianProcessMCMC(BaseModel):
             self.hypers.append(self.noise)
             self.hypers = [self.hypers]
 
-        self.models = []
-        for sample in self.hypers:
-            # Instantiate a GP for each hyperparameter configuration
-            kernel = deepcopy(self.kernel)
-            kernel.pars = np.exp(sample[:-1])
-            noise = np.exp(sample[-1])
-            model = GaussianProcess(kernel,
-                                    normalize_output=self.normalize_output,
-                                    normalize_input=self.normalize_input,
-                                    noise=noise,
-                                    lower=self.lower,
-                                    upper=self.upper,
-                                    rng=self.rng)
-            model.train(X, y, do_optimize=False)
-            self.models.append(model)
+        pool = Pool(self.pool_size)
+        self.models = pool.map(
+            partial(self._instantiate_GP, X=X, y=y, kernel=self.kernel,
+                kwargs={
+                    'normalize_output': self.normalize_output,
+                    'normalize_input': self.normalize_input,
+                    'lower': self.lower,
+                    'upper': self.upper,
+                    'rng': self.rng
+                }),
+            self.hypers
+        )
 
         self.is_trained = True
+
+    @staticmethod
+    def _instantiate_GP(sample, X, y, kernel, kwargs):
+        kern = deepcopy(kernel)
+        kern.pars = np.exp(sample[:-1])
+        noise = np.exp(sample[-1])
+        model = GaussianProcess(kernel, noise=noise, **kwargs)
+        model.train(X, y, do_optimize=False)
+        return model
 
     def loglikelihood(self, theta):
         """
@@ -334,8 +348,11 @@ class GaussianProcessMCMC(BaseModel):
 
         mu = np.zeros([len(self.models), X_test.shape[0]])
         var = np.zeros([len(self.models), X_test.shape[0]])
-        for i, model in enumerate(self.models):
-            mu[i], var[i] = model.predict(X_test)
+
+        pool = Pool(self.pool_size)
+        results = pool.map(partial((lambda m, x: m.predict(x)), x=X_test), self.models)
+        for i, r in enumerate(results):
+            mu[i], var[i] = r
 
         # See the Algorithm Runtime Prediction paper by Hutter et al.
         # for the derivation of the total variance
@@ -730,7 +747,8 @@ class FabolasGPMCMC(GaussianProcessMCMC):
                  rng=None,
                  lower=None,
                  upper=None,
-                 noise=-8):
+                 noise=-8,
+                 pool_size=-1):
 
         self.basis_func = basis_func
         self.hypers = None
@@ -740,7 +758,8 @@ class FabolasGPMCMC(GaussianProcessMCMC):
                                             normalize_output=normalize_output,
                                             normalize_input=False,
                                             rng=rng, lower=lower,
-                                            upper=upper, noise=noise)
+                                            upper=upper, noise=noise,
+                                            pool_size=pool_size)
 
     def train(self, X, y, do_optimize=True, **kwargs):
         X_norm, _, _ = normalization.zero_one_normalization(X[:, :-1], self.lower, self.upper)
@@ -795,23 +814,18 @@ class FabolasGPMCMC(GaussianProcessMCMC):
                 self.hypers.append(self.noise)
                 self.hypers = [self.hypers]
 
-        self.models = []
-        for sample in self.hypers:
-            # Instantiate a GP for each hyperparameter configuration
-            kernel = deepcopy(self.kernel)
-            kernel.pars = np.exp(sample[:-1])
-            noise = np.exp(sample[-1])
-            model = FabolasGP(
-                kernel,
-                basis_function=self.basis_func,
-                normalize_output=self.normalize_output,
-                noise=noise,
-                lower=self.lower,
-                upper=self.upper,
-                rng=self.rng
-            )
-            model.train(X, y, do_optimize=False)
-            self.models.append(model)
+        pool = Pool(self.pool_size)
+        self.models = pool.map(
+            partial(self._instantiate_GP, X=X, y=y, kernel=self.kernel,
+                kwargs={
+                    'normalize_output': self.normalize_output,
+                    'normalize_input': self.normalize_input,
+                    'lower': self.lower,
+                    'upper': self.upper,
+                    'rng': self.rng
+                }),
+            self.hypers
+        )
 
         self.is_trained = True
 

@@ -5,11 +5,17 @@ import numbers
 import os
 import json
 
+from functools import partial
+
 from Framework.fabolas.GPMCMC import FabolasGPMCMC
 from Framework.fabolas.Priors import EnvPrior
 from Framework.fabolas.Maximizer import InformationGainPerUnitCost, Direct, MarginalizationGPMCMC
 from Logging.Logger import Logger
 
+def _quadratic_bf(x):
+    return (1 - x) ** 2
+def _linear_bf(x):
+    return x
 
 class Fabolas:
     def __init__(
@@ -23,6 +29,8 @@ class Fabolas:
             burnin=100,
             chain_length=100,
             n_hypers=12,
+            model_pool_size=-1, # if -1 then min(n_hypers, cpu_count)
+            acquisition_pool_size=-1,
             rng=None,
             verbose_maximizer=False,
             log=None,
@@ -95,9 +103,6 @@ class Fabolas:
 
         kernel = 1  # 1 = covariance amplitude
 
-        quadratic_bf = lambda x: (1 - x) ** 2
-        linear_bf = lambda x: x
-
         # ARD Kernel for the configuration space
         degree = 1
         for d in range(n_dims):
@@ -136,10 +141,11 @@ class Fabolas:
             chain_length=chain_length,
             n_hypers=n_hypers,
             normalize_output=False,
-            basis_func=quadratic_bf,
+            basis_func=_quadratic_bf,
             lower=self._lower,
             upper=self._upper,
-            rng=self._rng
+            rng=self._rng,
+            pool_size=model_pool_size
         )
 
         cost_degree = 1
@@ -175,11 +181,12 @@ class Fabolas:
             burnin_steps=burnin,
             chain_length=chain_length,
             n_hypers=n_hypers,
-            basis_func=linear_bf,
+            basis_func=_linear_bf,
             normalize_output=False,
             lower=self._lower,
             upper=self._upper,
-            rng=self._rng
+            rng=self._rng,
+            pool_size=model_pool_size
         )
 
         # Extend input space by task variable
@@ -197,7 +204,7 @@ class Fabolas:
             is_env_variable=is_env,
             n_representer=50
         )
-        self._acquisition_func = MarginalizationGPMCMC(ig)
+        self._acquisition_func = MarginalizationGPMCMC(ig, pool_size=acquisition_pool_size)
 
         direct_logfile = os.devnull if self._log is None\
             else os.path.join(self._log['path'], "maximizer_results.txt")

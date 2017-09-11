@@ -9,6 +9,9 @@ from . import epmgp
 from copy import deepcopy
 from scipy.stats import norm
 
+from multiprocessing import Pool, cpu_count
+from functools import partial
+
 from Logging.Logger import Logger
 
 
@@ -689,7 +692,7 @@ class InformationGainPerUnitCost(InformationGain):
 
 
 class MarginalizationGPMCMC(BaseAcquisitionFunction):
-    def __init__(self, acquisition_func):
+    def __init__(self, acquisition_func, pool_size=-1):
         """
         Meta acquisition_functions function that allows to marginalise the
         acquisition_functions function over GP hyperparameters.
@@ -700,8 +703,12 @@ class MarginalizationGPMCMC(BaseAcquisitionFunction):
         acquisition_func: BaseAcquisitionFunction object
             The acquisition_functions function that will be integrated.
         """
+        if pool_size < 0:
+            pool_size = min(len(acquisition_func.model.models), cpu_count())
+            pool_size = max(pool_size, 1)
         self.acquisition_func = acquisition_func
         self.model = acquisition_func.model
+        self.pool = Pool(pool_size)
 
         # Save also the cost model if the acquisition_functions function needs it
         if hasattr(acquisition_func, "cost_model"):
@@ -709,22 +716,27 @@ class MarginalizationGPMCMC(BaseAcquisitionFunction):
         else:
             self.cost_model = None
 
-        # Keep for each model an extra acquisition_functions function module
-        self.estimators = []
-        for i in range(len(self.model.models)):
-            # Copy the acquisition_functions function for this model
-            estimator = deepcopy(acquisition_func)
-            if len(self.model.models) == 0:
-                estimator.model = None
-            else:
-                estimator.model = self.model.models[i]
+        self.estimators = self.get_estimators(acquisition_func)
 
-            if self.cost_model is not None:
-                if len(self.cost_model.models) == 0:
-                    estimator.model = None
-                else:
-                    estimator.model = self.cost_model.models[i]
-            self.estimators.append(estimator)
+    def get_estimators(self, acquisition_func):
+        # Keep for each model an extra acquisition_functions function module
+        model_args = []
+        for i in range(len(self.model.models)):
+            if self.cost_model is not None and len(self.cost_model.models) > 0:
+                model_args.append(self.cost_model.models[i])
+            else:
+                model_args.append(self.model.models[i])
+
+        return self.pool.map(
+            partial(self.generate_estimator, acquisition_func=acquisition_func),
+            model_args
+        )
+
+    @staticmethod
+    def generate_estimator(model, acquisition_func):
+        estimator = deepcopy(acquisition_func)
+        estimator.model = model
+        return estimator
 
     def update(self, model, cost_model=None, **kwargs):
         """
@@ -742,32 +754,24 @@ class MarginalizationGPMCMC(BaseAcquisitionFunction):
             has to be an instance of GaussianProcessMCMC.
         """
         if len(self.estimators) == 0:
-            for i in range(len(self.model.models)):
-                # Copy the acquisition_functions function for this model
-                estimator = deepcopy(self.acquisition_func)
-                if len(self.model.models) == 0:
-                    estimator.model = None
-                else:
-                    estimator.model = self.model.models[i]
-
-                if self.cost_model is not None:
-                    if len(self.cost_model.models) == 0:
-                        estimator.model = None
-                    else:
-                        estimator.model = self.cost_model.models[i]
-                self.estimators.append(estimator)
+            self.estimators = self.get_estimators(self.acquisition_func)
 
         self.model = model
         if cost_model is not None:
             self.cost_model = cost_model
-        for i in range(len(self.model.models)):
 
-            if cost_model is not None:
-                self.estimators[i].update(self.model.models[i],
-                                          self.cost_model.models[i],
-                                          **kwargs)
-            else:
-                self.estimators[i].update(self.model.models[i], **kwargs)
+        self.estimators = self.pool.starmap(
+            partial(self.update_estimator, kw=kwargs),
+            zip(self.estimators, self.model.models, self.cost_model.models)
+        )
+
+    @staticmethod
+    def update_estimator(estimator, mdl, mdl_cost, kw):
+        if mdl_cost is not None:
+            estimator.update(mdl, mdl_cost, **kw)
+        else:
+            estimator.update(mdl, kw)
+        return estimator
 
     def compute(self, X_test, derivative=False):
         """
@@ -795,119 +799,13 @@ class MarginalizationGPMCMC(BaseAcquisitionFunction):
         acquisition_values = np.zeros([len(self.model.models), X_test.shape[0]])
 
         # Integrate over the acquisition_functions values
-        for i in range(len(self.model.models)):
-            acquisition_values[i] = self.estimators[i].compute(X_test, derivative=derivative)
+        acquisition_values[:len(self.model.models)] = self.pool.map(
+            partial(self._integrate_acquisition_values, derivative=derivative, x=X_test),
+            self.estimators[:len(self.model.models)]
+        )
 
         return acquisition_values.mean(axis=0)
 
-    class MarginalizationGPMCMC(BaseAcquisitionFunction):
-        def __init__(self, acquisition_func):
-            """
-            Meta acquisition_functions function that allows to marginalise the
-            acquisition_functions function over GP hyperparameters.
-
-            Parameters
-            ----------
-
-            acquisition_func: BaseAcquisitionFunction object
-                The acquisition_functions function that will be integrated.
-            """
-            self.acquisition_func = acquisition_func
-            self.model = acquisition_func.model
-
-            # Save also the cost model if the acquisition_functions function needs it
-            if hasattr(acquisition_func, "cost_model"):
-                self.cost_model = acquisition_func.cost_model
-            else:
-                self.cost_model = None
-
-            # Keep for each model an extra acquisition_functions function module
-            self.estimators = []
-            for i in range(len(self.model.models)):
-                # Copy the acquisition_functions function for this model
-                estimator = deepcopy(acquisition_func)
-                if len(self.model.models) == 0:
-                    estimator.model = None
-                else:
-                    estimator.model = self.model.models[i]
-
-                if self.cost_model is not None:
-                    if len(self.cost_model.models) == 0:
-                        estimator.model = None
-                    else:
-                        estimator.model = self.cost_model.models[i]
-                self.estimators.append(estimator)
-
-        def update(self, model, cost_model=None, **kwargs):
-            """
-            Updates each acquisition_functions function object if the models
-            have changed
-
-            Parameters
-            ----------
-            model: Model object
-                The model of the objective function, it has to be an instance of
-                GaussianProcessMCMC.
-            cost_model: Model object
-                If the acquisition_functions function also takes the cost into account, we
-                have to specify here the model for the cost function. cost_model
-                has to be an instance of GaussianProcessMCMC.
-            """
-            if len(self.estimators) == 0:
-                for i in range(len(self.model.models)):
-                    # Copy the acquisition_functions function for this model
-                    estimator = deepcopy(self.acquisition_func)
-                    if len(self.model.models) == 0:
-                        estimator.model = None
-                    else:
-                        estimator.model = self.model.models[i]
-
-                    if self.cost_model is not None:
-                        if len(self.cost_model.models) == 0:
-                            estimator.model = None
-                        else:
-                            estimator.model = self.cost_model.models[i]
-                    self.estimators.append(estimator)
-
-            self.model = model
-            if cost_model is not None:
-                self.cost_model = cost_model
-            for i in range(len(self.model.models)):
-
-                if cost_model is not None:
-                    self.estimators[i].update(self.model.models[i],
-                                              self.cost_model.models[i],
-                                              **kwargs)
-                else:
-                    self.estimators[i].update(self.model.models[i], **kwargs)
-
-        def compute(self, X_test, derivative=False):
-            """
-            Integrates the acquisition_functions function over the GP's hyperparameters by
-            averaging the acquisition_functions value for X of each hyperparameter sample.
-
-            Parameters
-            ----------
-            X_test: np.ndarray(N, D), The input point where the acquisition_functions function
-                should be evaluate. The dimensionality of X is (N, D), with N as
-                the number of points to evaluate at and D is the number of
-                dimensions of one X.
-
-            derivative: Boolean
-                If is set to true also the derivative of the acquisition_functions
-                function at X is returned
-
-            Returns
-            -------
-            np.ndarray(1,1)
-                Integrated acquisition_functions value of X
-            np.ndarray(1,D)
-                Derivative of the acquisition_functions value at X (only if derivative=True)
-            """
-            acquisition_values = np.zeros([len(self.model.models), X_test.shape[0]])
-
-            # Integrate over the acquisition_functions values
-            for i in range(len(self.model.models)):
-                acquisition_values[i] = self.estimators[i].compute(X_test, derivative=derivative)
-
-            return acquisition_values.mean(axis=0)
+    @staticmethod
+    def _integrate_acquisition_values(estimator, x, derivative):
+        return estimator.compute(x, derivative=derivative)
