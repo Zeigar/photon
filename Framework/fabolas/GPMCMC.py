@@ -350,7 +350,7 @@ class GaussianProcessMCMC(BaseModel):
         var = np.zeros([len(self.models), X_test.shape[0]])
 
         pool = Pool(self.pool_size)
-        results = pool.map(partial((lambda m, x: m.predict(x)), x=X_test), self.models)
+        results = pool.map(partial(self._model_predict, x=X_test), self.models)
         for i, r in enumerate(results):
             mu[i], var[i] = r
 
@@ -373,6 +373,10 @@ class GaussianProcessMCMC(BaseModel):
             v[np.where((v < np.finfo(v.dtype).eps) & (v > -np.finfo(v.dtype).eps))] = 0
 
         return m, v
+
+    @staticmethod
+    def _model_predict(model, x):
+        return model.predict(x)
 
     def get_incumbent(self):
         """
