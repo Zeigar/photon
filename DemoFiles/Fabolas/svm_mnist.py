@@ -18,6 +18,8 @@ train_data, test_data, train_labels, test_labels = train_test_split(
     test_size=1/7
 )
 
+job_id = sys.argv[1] if len(sys.argv) > 1 else 0
+
 cv = KFold(n_splits=3, shuffle=True, random_state=0)
 
 n_train_data = len(train_data)
@@ -26,7 +28,8 @@ pipe = Hyperpipe(
     cv,
     optimizer='fabolas',
     optimizer_params={
-        'n_min_train_data': int(n_train_data/9000), 'n_train_data': n_train_data
+        'n_min_train_data': int(n_train_data/9000), 'n_train_data': n_train_data,
+        'log': {'id': job_id, 'path': 'logs/', 'name': 'mnistsvm', 'incumbents': True}
     },
     metrics=['accuracy'],
     verbose=2

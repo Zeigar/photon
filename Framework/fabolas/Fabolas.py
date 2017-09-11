@@ -3,7 +3,7 @@ import george
 import numbers
 
 import os
-import sys
+import json
 
 from Framework.fabolas.GPMCMC import FabolasGPMCMC
 from Framework.fabolas.Priors import EnvPrior
@@ -25,10 +25,26 @@ class Fabolas:
             n_hypers=12,
             rng=None,
             verbose_maximizer=False,
+            log=None,
             **_
     ):
         assert n_init <= num_iterations, "Number of initial design point has to be <= than the number of iterations"
 
+        if log is not None:
+            if not isinstance(log, dict):
+                raise ValueError("log must be a dict with keys id, path, name")
+            log['id'] = int(log['id']) if 'id' in log else 0
+            log['name'] = str(log['name']) if 'name' in log else 'fabolas'
+            log['incumbents'] = bool(log['incumbents']) if 'incumbents' in log else False
+            if 'path' not in log:
+                raise ValueError("log must contain the key path")
+            log['bn'] = '{name}_{id}'.format(name=log['name'], id=log['id'])
+            log['path'] = os.path.realpath(os.path.join(str(log['path']), log['bn']))
+            if not os.path.exists(log['path']):
+                os.makedirs(log['path'])
+            Logger().info("Fabolas: writing logs to "+log['path'])
+
+        self._log = log
         self._verbose_maximizer = verbose_maximizer
         self._lower = []
         self._upper = []
@@ -182,11 +198,16 @@ class Fabolas:
             n_representer=50
         )
         self._acquisition_func = MarginalizationGPMCMC(ig)
+
+        direct_logfile = os.devnull if self._log is None\
+            else os.path.join(self._log['path'], "maximizer_results.txt")
+
         self._maximizer = Direct(
             self._acquisition_func,
             extend_lower,
             extend_upper,
-            verbose=True,
+            verbose=self._verbose_maximizer,
+            logfilename=direct_logfile,
             n_func_evals=200
         )
 
@@ -215,6 +236,9 @@ class Fabolas:
             return
 
         score = 1-score
+
+        config_dict = config # preserve for logging
+
         # init-loop
         if self._it < self._n_init:
             config = self._get_params_from_dict(config)
@@ -229,6 +253,8 @@ class Fabolas:
             self._X = np.concatenate((self._X, config[None, :]), axis=0)
             self._Y = np.concatenate((self._Y, np.log(np.array([score]))), axis=0)  # Model the target function on a logarithmic scale
             self._cost = np.concatenate((self._cost, np.log(np.array([cost]))), axis=0)  # Model the cost function on a logarithmic scale
+
+        self._generate_log(config_dict, subset_frac, score, cost)
 
     def get_incumbent(self):
         # This final configuration should be the best one
@@ -274,16 +300,7 @@ class Fabolas:
         Logger().debug("Fabolas: Update acquisition func")
         self._acquisition_func.update(self._model_objective, self._model_cost)
         Logger().debug("Fabolas: Generate new config by maximizing")
-
-        stdout = None
-        if not self._verbose_maximizer:
-            Logger().debug("Fabolas: Maximizer-Output is suppressed")
-            devnull = open(os.devnull, "w")
-            stdout = os.dup(sys.stdout.fileno())
-            os.dup2(devnull.fileno(), 1)
         new_x = self._maximizer.maximize()
-        if not stdout is None:
-            os.dup2(stdout, 1)
 
         s = self._s_max/self._retransform(new_x[-1])
         Logger().debug("Fabolas: config generation done for this step")
@@ -301,6 +318,35 @@ class Fabolas:
         incumbent_value = m[best]
 
         return incumbent, incumbent_value
+
+    def _generate_log(self, conf, subset, result, cost):
+        if self._log is None:
+            return
+
+        Logger().debug("Fabolas: generating log")
+        l = {
+            'config': conf,
+            'subset_frac': subset,
+            'config_result': result,
+            'config_cost': cost,
+            'iteration': self._it,
+            'operation': 'init' if self._it < self._n_init else 'opt'
+        }
+        if self._log['incumbents']:
+            if self._it < self._n_init:
+                best_i = np.argmin(self._Y)
+                l['incumbents'], _ = self._create_param_dict(self._X[best_i][:-1], 1)
+                l['incumbents_estimated_performance'] = -1
+            else:
+                inc, inc_val = self._projected_incumbent_estimation(self._model_objective, self._X[:, :-1])
+                l['incumbents'], _ = self._create_param_dict(*self._adjust_param_types(inc[:-1]), 1)
+                l['incumbents_estimated_performance'] = inc_val
+
+        with open(os.path.join(
+                self._log['path'],
+                self._log['bn']+'_it{it}.json'.format(it=self._it)
+        ), 'w') as f:
+            json.dump(l, f)
 
     def _transform(self, s):
         s_transform = (np.log2(s) - np.log2(self._s_min)) \

@@ -197,4 +197,4 @@ tmtagsHistory
 /hyperpipe_results.csv
 /config_history.csv
 
-DIRresults.txt
+logs/

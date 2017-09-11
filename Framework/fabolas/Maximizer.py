@@ -42,7 +42,7 @@ class BaseMaximizer(object):
 
 
 class Direct(BaseMaximizer):
-    def __init__(self, objective_function, lower, upper,
+    def __init__(self, objective_function, lower, upper, logfilename="maximizer_log.txt",
                  n_func_evals=400, n_iters=200, verbose=False):
         """
         Interface for the DIRECT algorithm by D. R. Jones, C. D. Perttunen
@@ -66,6 +66,7 @@ class Direct(BaseMaximizer):
         self.n_func_evals = n_func_evals
         self.n_iters = n_iters
         self.verbose = verbose
+        self.logfilename = logfilename
 
         super(Direct, self).__init__(objective_function, lower, upper)
 
@@ -90,7 +91,8 @@ class Direct(BaseMaximizer):
                                    l=[self.lower],
                                    u=[self.upper],
                                    maxT=self.n_iters,
-                                   maxf=self.n_func_evals)
+                                   maxf=self.n_func_evals,
+                                   logfilename=self.logfilename)
         else:
             fileno = sys.stdout.fileno()
             with os.fdopen(os.dup(fileno), 'wb') as stdout:
@@ -101,7 +103,8 @@ class Direct(BaseMaximizer):
                                            l=[self.lower],
                                            u=[self.upper],
                                            maxT=self.n_iters,
-                                           maxf=self.n_func_evals)
+                                           maxf=self.n_func_evals,
+                                           logfilename=self.logfilename)
                 sys.stdout.flush();
                 os.dup2(stdout.fileno(), fileno)  # restore
         return x
