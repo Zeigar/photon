@@ -348,7 +348,7 @@ class Fabolas:
                 l['incumbents_estimated_performance'] = -1
             else:
                 inc, inc_val = self._projected_incumbent_estimation(self._model_objective, self._X[:, :-1])
-                l['incumbents'], _ = self._create_param_dict(inc[:-1], 1)
+                l['incumbents'], _ = self._create_param_dict((inc[:-1], 1))
                 l['incumbents_estimated_performance'] = inc_val
 
         with open(os.path.join(
