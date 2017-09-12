@@ -24,15 +24,18 @@ cv = KFold(n_splits=3, shuffle=True, random_state=0)
 
 n_train_data = len(train_data)
 pipe = Hyperpipe(
-    'mnistsvm',
+    'mnistsvm_'+str(job_id),
     cv,
     optimizer='fabolas',
     optimizer_params={
-        'n_min_train_data': int(n_train_data/9000), 'n_train_data': n_train_data,
+        'n_min_train_data': 100, 'n_train_data': n_train_data,
+        'n_init': 10, 'num_iterations': 80, 'subsets': [64, 32, 16, 8],
+        'n_hypers': 30,
         'log': {'id': job_id, 'path': 'logs/', 'name': 'mnistsvm', 'incumbents': True}
     },
     metrics=['accuracy'],
-    verbose=2
+    verbose=2,
+    logging=True
 )
 pipe += PipelineElement.create('svc', {'C': [-10, 10, float], 'gamma': [-10, 10, float]})
 
