@@ -275,7 +275,7 @@ class Hyperpipe(BaseEstimator):
                     self.distribute_cv_info_to_hyperpipe_children(num_of_folds=num_folds)
 
                     # do the optimizing
-                    for specific_config, subset_frac in self.optimizer.next_config:
+                    for specific_config, subset_frac, tracking_vars in self.optimizer.next_config:
 
                         self.distribute_cv_info_to_hyperpipe_children(reset=True)
                         hp = TestPipeline(self.pipe, specific_config, self.metrics)
@@ -328,7 +328,7 @@ class Hyperpipe(BaseEstimator):
 
 
                         # 3. inform optimizer about performance
-                        self.optimizer.evaluate_recent_performance(specific_config, config_score, subset_frac)
+                        self.optimizer.evaluate_recent_performance(specific_config, config_score, subset_frac, tracking_vars)
 
                         # Print Result for config
                         Logger().debug('...done:')

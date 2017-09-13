@@ -5,7 +5,7 @@ import numbers
 import os
 import json
 
-from functools import partial
+from time import time
 
 from Framework.fabolas.GPMCMC import FabolasGPMCMC
 from Framework.fabolas.Priors import EnvPrior
@@ -222,7 +222,11 @@ class Fabolas:
         Logger().debug('Fabolas: Starting initialization')
         for self._it in range(0, self._n_init):
             Logger().debug('Fabolas: step ' + str(self._it) + ' (init)')
-            yield self._create_param_dict(self._init_models())
+            start = time()
+            result = self._init_models()
+            tracking = {'overhead_time': time()-start}
+            Logger().debug('Fabolas: needed {t!s}s'.format(t=tracking['overhead_time']))
+            yield self._create_param_dict(result, tracking if self._log else None)
 
         self._X = np.array(self._X)
         self._Y = np.array(self._Y)
@@ -231,13 +235,21 @@ class Fabolas:
         Logger().debug('Fabolas: Starting optimization')
         for self._it in range(self._n_init, self._num_iterations):
             Logger().debug('Fabolas: step ' + str(self._it) + ' (opt)')
-            yield self._create_param_dict(self._optimize_config())
+            start = time()
+            result = self._optimize_config()
+            tracking = {'overhead_time': time()-start}
+            Logger().debug('Fabolas: needed {t!s}s'.format(t=tracking['overhead_time']))
+            yield self._create_param_dict(result, tracking if self._log else None)
 
         Logger().debug('Fabolas: Final config')
+        start = time()
         self._model_objective.train(self._X, self._Y, do_optimize=True)
-        yield self._create_param_dict(self.get_incumbent())
+        result = self.get_incumbent()
+        tracking = {'overhead_time': time()-start}
+        Logger().debug('Fabolas: needed {t!s}s'.format(t=tracking['overhead_time']))
+        yield self._create_param_dict(result, tracking if self._log else None)
 
-    def process_result(self, config, subset_frac, score, cost):
+    def process_result(self, config, subset_frac, score, cost, tracking_vars):
         # We're done
         if self._it >= self._num_iterations:
             return
@@ -254,14 +266,14 @@ class Fabolas:
             self._cost.append(np.log(cost))  # Model the cost on a logarithmic scale
 
         # opt-loop
-        else:
+        elif self._n_init <= self._it < self._num_iterations:
             config = np.array(self._get_params_from_dict(config))
             config = np.append(config, subset_frac)
             self._X = np.concatenate((self._X, config[None, :]), axis=0)
             self._Y = np.concatenate((self._Y, np.log(np.array([score]))), axis=0)  # Model the target function on a logarithmic scale
             self._cost = np.concatenate((self._cost, np.log(np.array([cost]))), axis=0)  # Model the cost function on a logarithmic scale
 
-        self._generate_log(config_dict, subset_frac, score, cost)
+        self._generate_log(config_dict, subset_frac, score, cost, tracking_vars)
 
     def get_incumbent(self):
         # This final configuration should be the best one
@@ -275,8 +287,10 @@ class Fabolas:
             params[i] = int(np.round(params[i]))
         return params
 
-    def _create_param_dict(self, params):
+    def _create_param_dict(self, params, tracking=None):
         params, s = params
+        if tracking is not None:
+            tracking.update({'config_log': dict(zip(self._number_param_keys, params))})
         params = self._adjust_param_types(np.exp(params))
         self._param_dict.update(
             dict(zip(
@@ -284,7 +298,7 @@ class Fabolas:
                 params
             ))
         )
-        return self._param_dict, s
+        return self._param_dict, s, tracking
 
     def _get_params_from_dict(self, pdict):
         params = []
@@ -328,7 +342,7 @@ class Fabolas:
 
         return incumbent, incumbent_value
 
-    def _generate_log(self, conf, subset, result, cost):
+    def _generate_log(self, conf, subset, result, cost, tracking_vars):
         if self._log is None:
             return
 
@@ -341,15 +355,26 @@ class Fabolas:
             'iteration': self._it,
             'operation': 'init' if self._it < self._n_init else 'opt'
         }
-        if self._log['incumbents']:
+        if self._it == self._num_iterations:
+            l['operation'] = 'final'
+
+        if self._log['incumbents'] and self._it < self._num_iterations:
+            start = time()
             if self._it < self._n_init:
                 best_i = np.argmin(self._Y)
-                l['incumbents'], _ = self._create_param_dict((self._X[best_i][:-1], 1))
+                l['incumbents'], _, track = self._create_param_dict((self._X[best_i][:-1], 1), {})
                 l['incumbents_estimated_performance'] = -1
+                if tracking_vars is not None:
+                    l['incumbents_log'] = track['config_log']
             else:
-                inc, inc_val = self._projected_incumbent_estimation(self._model_objective, self._X[:, :-1])
-                l['incumbents'], _ = self._create_param_dict((inc[:-1], 1))
+                inc, inc_val = self._projected_incumbent_estimation(self._model_objective, self._X[:, :-1], {})
+                l['incumbents'], _, track = self._create_param_dict((inc[:-1], 1))
                 l['incumbents_estimated_performance'] = inc_val
+                if tracking_vars is not None:
+                    l['incumbents_log'] = track['config_log']
+            tracking_vars.update({'incumbent_time': time()-start})
+
+        l.update(tracking_vars)
 
         with open(os.path.join(
                 self._log['path'],

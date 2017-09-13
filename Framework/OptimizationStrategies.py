@@ -70,7 +70,7 @@ class TimeBoxedRandomGridSearchOptimizer(RandomGridSearchOptimizer):
             self.end_time = self.start_time + datetime.timedelta(minutes=self.limit_in_minutes)
         for parameters in super(TimeBoxedRandomGridSearchOptimizer, self).next_config_generator():
             if datetime.datetime.now() < self.end_time:
-                yield parameters, 1
+                yield parameters, 1, None
 
 
 class FabolasOptimizer(object):
@@ -89,10 +89,10 @@ class FabolasOptimizer(object):
     def next_config_generator(self):
         yield from self._fabolas.calc_config()
 
-    def evaluate_recent_performance(self, config, performance, subset_frac):
+    def evaluate_recent_performance(self, config, performance, subset_frac, tracking):
         score = performance[1]
         cost = performance[2]
-        self._fabolas.process_result(config, int(subset_frac), score, cost)
+        self._fabolas.process_result(config, int(subset_frac), score, cost, tracking)
 
 
 # class AnyHyperparamOptimizer(object):
