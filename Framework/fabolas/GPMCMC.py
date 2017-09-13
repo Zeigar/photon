@@ -266,6 +266,7 @@ class GaussianProcessMCMC(BaseModel):
                 }),
             self.hypers
         )
+        pool.close()
 
         self.is_trained = True
 
@@ -830,6 +831,7 @@ class FabolasGPMCMC(GaussianProcessMCMC):
                 }),
             self.hypers
         )
+        pool.close()
 
         self.is_trained = True
 
