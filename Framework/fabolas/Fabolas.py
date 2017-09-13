@@ -367,8 +367,8 @@ class Fabolas:
                 if tracking_vars is not None:
                     l['incumbents_log'] = track['config_log']
             else:
-                inc, inc_val = self._projected_incumbent_estimation(self._model_objective, self._X[:, :-1], {})
-                l['incumbents'], _, track = self._create_param_dict((inc[:-1], 1))
+                inc, inc_val = self._projected_incumbent_estimation(self._model_objective, self._X[:, :-1])
+                l['incumbents'], _, track = self._create_param_dict((inc[:-1], 1), {})
                 l['incumbents_estimated_performance'] = inc_val
                 if tracking_vars is not None:
                     l['incumbents_log'] = track['config_log']
