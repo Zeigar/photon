@@ -692,6 +692,9 @@ class InformationGainPerUnitCost(InformationGain):
 
 
 class MarginalizationGPMCMC(BaseAcquisitionFunction):
+    _pool = None
+    _pool_use_count = 0
+
     def __init__(self, acquisition_func, pool_size=-1):
         """
         Meta acquisition_functions function that allows to marginalise the
@@ -703,12 +706,12 @@ class MarginalizationGPMCMC(BaseAcquisitionFunction):
         acquisition_func: BaseAcquisitionFunction object
             The acquisition_functions function that will be integrated.
         """
-        if pool_size < 0:
+        if pool_size is not None and pool_size < 0:
             pool_size = min(len(acquisition_func.model.models), cpu_count())
             pool_size = max(pool_size, 1)
         self.acquisition_func = acquisition_func
         self.model = acquisition_func.model
-        self.pool = Pool(pool_size)
+        self.pool = pool_size
 
         # Save also the cost model if the acquisition_functions function needs it
         if hasattr(acquisition_func, "cost_model"):
@@ -717,6 +720,29 @@ class MarginalizationGPMCMC(BaseAcquisitionFunction):
             self.cost_model = None
 
         self.estimators = self.get_estimators(acquisition_func)
+
+    @property
+    def pool(self):
+        return self.__class__._pool
+
+    @pool.setter
+    def pool(self, pool_size):
+        cls = self.__class__
+        if cls._pool is None:
+            if pool_size is not None:
+                pool_size = int(pool_size)
+                if pool_size < 1:
+                    pool_size = None
+            cls._pool = Pool(pool_size)
+        cls._pool_use_count += 1
+
+    @pool.deleter
+    def pool(self):
+        cls = self.__class__
+        cls._pool_use_count -= 1
+        if cls._pool_use_count < 1:
+            self._pool.close()
+            self._pool.join()
 
     def get_estimators(self, acquisition_func):
         # Keep for each model an extra acquisition_functions function module

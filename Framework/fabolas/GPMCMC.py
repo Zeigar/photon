@@ -118,6 +118,9 @@ class BaseModel(object):
 
 
 class GaussianProcessMCMC(BaseModel):
+    _pool = None
+    _pool_use_count = 0
+
     def __init__(self, kernel, prior=None, n_hypers=20, chain_length=2000, burnin_steps=2000,
                  normalize_output=False, normalize_input=True, pool_size=-1,
                  rng=None, lower=None, upper=None, noise=-8):
@@ -161,7 +164,7 @@ class GaussianProcessMCMC(BaseModel):
         if pool_size < 0:
             pool_size = min(n_hypers, cpu_count())
             pool_size = max(pool_size, 1)
-        self.pool_size = pool_size
+        self.pool = pool_size
 
         self.kernel = kernel
         self.prior = prior
@@ -179,6 +182,29 @@ class GaussianProcessMCMC(BaseModel):
 
         self.lower = lower
         self.upper = upper
+
+    @property
+    def pool(self):
+        return self.__class__._pool
+
+    @pool.setter
+    def pool(self, pool_size):
+        cls = self.__class__
+        if cls._pool is None:
+            if pool_size is not None:
+                pool_size = int(pool_size)
+                if pool_size < 1:
+                    pool_size = None
+            cls._pool = Pool(pool_size)
+        cls._pool_use_count += 1
+
+    @pool.deleter
+    def pool(self):
+        cls = self.__class__
+        cls._pool_use_count -= 1
+        if cls._pool_use_count == 0:
+            self._pool.close()
+            self._pool.join()
 
     @BaseModel._check_shapes_train
     def train(self, X, y, do_optimize=True, **kwargs):
@@ -254,8 +280,7 @@ class GaussianProcessMCMC(BaseModel):
             self.hypers.append(self.noise)
             self.hypers = [self.hypers]
 
-        pool = Pool(self.pool_size)
-        self.models = pool.map(
+        self.models = self.pool.map(
             partial(self._instantiate_GP, X=X, y=y, kernel=self.kernel,
                 kwargs={
                     'normalize_output': self.normalize_output,
@@ -266,7 +291,6 @@ class GaussianProcessMCMC(BaseModel):
                 }),
             self.hypers
         )
-        pool.close()
 
         self.is_trained = True
 
@@ -350,8 +374,7 @@ class GaussianProcessMCMC(BaseModel):
         mu = np.zeros([len(self.models), X_test.shape[0]])
         var = np.zeros([len(self.models), X_test.shape[0]])
 
-        pool = Pool(self.pool_size)
-        results = pool.map(partial(self._model_predict, x=X_test), self.models)
+        results = self.pool.map(partial(self._model_predict, x=X_test), self.models)
         for i, r in enumerate(results):
             mu[i], var[i] = r
 
@@ -819,8 +842,7 @@ class FabolasGPMCMC(GaussianProcessMCMC):
                 self.hypers.append(self.noise)
                 self.hypers = [self.hypers]
 
-        pool = Pool(self.pool_size)
-        self.models = pool.map(
+        self.models = self.pool.map(
             partial(self._instantiate_GP, X=X, y=y, kernel=self.kernel,
                 kwargs={
                     'normalize_output': self.normalize_output,
@@ -831,7 +853,6 @@ class FabolasGPMCMC(GaussianProcessMCMC):
                 }),
             self.hypers
         )
-        pool.close()
 
         self.is_trained = True
 
