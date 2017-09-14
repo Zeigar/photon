@@ -40,16 +40,7 @@ class NiiLoader(object):
             print('[INFO] vectorize starts...')
             data = np.reshape(data, (data.shape[0], data.shape[1] *
                                      data.shape[2] * data.shape[3]))
-        else:
-            #test for small trainingset
-            masks = get_rois(atlas='aal', rois=[])
-            data_masked = data * np.tile(masks['whole_brain'], (data.shape[0], 1, 1, 1))
 
-            data_vec = np.zeros((int(data_masked.shape[0]),int(np.sum(masks['whole_brain']))))
-
-            for i in range(data_masked.shape[0]):
-               data_vec[i,:] = data_masked[i,:,:,:][data_masked[i,:,:,:]!=0]
-            data = data_vec
 
         return data
 

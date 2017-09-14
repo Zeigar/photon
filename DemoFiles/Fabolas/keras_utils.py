@@ -8,15 +8,15 @@ from keras import backend as K
 #pc = 0: home pc
 #pc = 1: titania
 
-pc = 1
+pc = 2
 
 if pc == 0:
     path = '/home/henningj/Documents/MRTDaten/'
     sshpath = '/home/henningj/'
     pathaal = path
-if pc == 1:
-    path = '/home/hjanssen/Schreibtisch/Scra'
-    sshpath = '/spm-data/Scratch/spielwiese_henning/MRTDaten/'
+if pc == 2:
+    path = '/spm-data-cached/vault-data4/DeepLearn/MRTDaten/'
+    sshpath = '/home/hjanssen/'
     pathaal = path
 
 def get_rois(atlas='aal', rois=[]):
