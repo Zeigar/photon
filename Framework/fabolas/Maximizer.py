@@ -752,8 +752,11 @@ class MarginalizationGPMCMC(BaseAcquisitionFunction):
         # Keep for each model an extra acquisition_functions function module
         model_args = []
         for i in range(len(self.model.models)):
-            if self.cost_model is not None and len(self.cost_model.models) > 0:
-                model_args.append(self.cost_model.models[i])
+            if self.cost_model is not None:
+                if len(self.cost_model.models) == 0:
+                    model_args.append(self.cost_model.models[i])
+                else:
+                    model_args.append(None)
             else:
                 model_args.append(self.model.models[i])
 
