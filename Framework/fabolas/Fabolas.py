@@ -34,6 +34,7 @@ class Fabolas:
             rng=None,
             verbose_maximizer=False,
             verbose_gp=False,
+            consider_opt_time=False,
             log=None,
             **_
     ):
@@ -94,6 +95,7 @@ class Fabolas:
         self._num_iterations = num_iterations
         self._subsets = subsets
         self._rng = np.random.RandomState() if rng is None else rng
+        self._consider_opt_time = consider_opt_time
 
         self._X = []
         self._Y = []
@@ -230,7 +232,7 @@ class Fabolas:
             result = self._init_models()
             tracking = {'overhead_time': time()-start}
             Logger().debug('Fabolas: needed {t!s}s'.format(t=tracking['overhead_time']))
-            yield self._create_param_dict(result, tracking if self._log else None)
+            yield self._create_param_dict(result, tracking)
 
         self._X = np.array(self._X)
         self._Y = np.array(self._Y)
@@ -243,7 +245,7 @@ class Fabolas:
             result = self._optimize_config()
             tracking = {'overhead_time': time()-start}
             Logger().debug('Fabolas: needed {t!s}s'.format(t=tracking['overhead_time']))
-            yield self._create_param_dict(result, tracking if self._log else None)
+            yield self._create_param_dict(result, tracking)
 
         Logger().debug('Fabolas: Final config')
         start = time()
@@ -251,7 +253,7 @@ class Fabolas:
         result = self.get_incumbent()
         tracking = {'overhead_time': time()-start}
         Logger().debug('Fabolas: needed {t!s}s'.format(t=tracking['overhead_time']))
-        yield self._create_param_dict(result, tracking if self._log else None)
+        yield self._create_param_dict(result, tracking)
 
     def process_result(self, config, subset_frac, score, cost, tracking_vars):
         # We're done
@@ -259,6 +261,9 @@ class Fabolas:
             return
 
         score = 1-score
+
+        if self._consider_opt_time:
+            cost += tracking_vars['overhead_time']
 
         config_dict = config # preserve for logging
 
