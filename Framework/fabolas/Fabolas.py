@@ -33,6 +33,7 @@ class Fabolas:
             acquisition_pool_size=-1,
             rng=None,
             verbose_maximizer=False,
+            verbose_gp=False,
             log=None,
             **_
     ):
@@ -145,7 +146,8 @@ class Fabolas:
             lower=self._lower,
             upper=self._upper,
             rng=self._rng,
-            pool_size=model_pool_size
+            pool_size=model_pool_size,
+            verbose_gp=verbose_gp
         )
 
         cost_degree = 1
@@ -186,7 +188,8 @@ class Fabolas:
             lower=self._lower,
             upper=self._upper,
             rng=self._rng,
-            pool_size=model_pool_size
+            pool_size=model_pool_size,
+            verbose_gp=verbose_gp
         )
 
         # Extend input space by task variable
@@ -202,7 +205,8 @@ class Fabolas:
             extend_lower,
             extend_upper,
             is_env_variable=is_env,
-            n_representer=50
+            n_representer=50,
+            verbose=verbose_gp
         )
         self._acquisition_func = MarginalizationGPMCMC(ig, pool_size=acquisition_pool_size)
 

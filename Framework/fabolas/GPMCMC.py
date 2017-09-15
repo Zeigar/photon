@@ -123,7 +123,7 @@ class GaussianProcessMCMC(BaseModel):
 
     def __init__(self, kernel, prior=None, n_hypers=20, chain_length=2000, burnin_steps=2000,
                  normalize_output=False, normalize_input=True, pool_size=-1,
-                 rng=None, lower=None, upper=None, noise=-8):
+                 rng=None, lower=None, upper=None, noise=-8, verbose_gp=False):
         """
         GaussianProcess model based on the george GP library that uses MCMC
         sampling to marginalise over the hyperparmeters. If you use this class
@@ -160,6 +160,8 @@ class GaussianProcessMCMC(BaseModel):
             self.rng = np.random.RandomState(np.random.randint(0, 10000))
         else:
             self.rng = rng
+
+        self.verbose_gp = verbose_gp
 
         if pool_size < 0:
             pool_size = min(n_hypers, cpu_count())
@@ -287,7 +289,8 @@ class GaussianProcessMCMC(BaseModel):
                     'normalize_input': self.normalize_input,
                     'lower': self.lower,
                     'upper': self.upper,
-                    'rng': self.rng
+                    'rng': self.rng,
+                    'verbose': self.verbose_gp
                 }),
             self.hypers
         )
@@ -428,7 +431,7 @@ class GaussianProcess(BaseModel):
                  noise=1e-3, use_gradients=False,
                  normalize_output=False,
                  normalize_input=True,
-                 lower=None, upper=None, rng=None):
+                 lower=None, upper=None, rng=None, verbose=False):
         """
         Interface to the george GP library. The GP hyperparameter are obtained
         by optimizing the marginal log likelihood.
@@ -463,6 +466,7 @@ class GaussianProcess(BaseModel):
         else:
             self.rng = rng
 
+        self.verbose = verbose
         self.kernel = kernel
         self.gp = None
         self.prior = prior
@@ -524,7 +528,8 @@ class GaussianProcess(BaseModel):
             self.hypers = self.gp.kernel[:]
             self.hypers = np.append(self.hypers, np.log(self.noise))
 
-        Logger().debug("Fabolas.GaussianProcess: GP Hyperparameters: " + str(self.hypers))
+        if self.verbose:
+            Logger().debug("Fabolas.GaussianProcess: GP Hyperparameters: " + str(self.hypers))
 
         self.gp.compute(self.X, yerr=np.sqrt(self.noise))
 
@@ -776,7 +781,8 @@ class FabolasGPMCMC(GaussianProcessMCMC):
                  lower=None,
                  upper=None,
                  noise=-8,
-                 pool_size=-1):
+                 pool_size=-1,
+                 verbose_gp=False):
 
         self.basis_func = basis_func
         self.hypers = None
@@ -787,7 +793,8 @@ class FabolasGPMCMC(GaussianProcessMCMC):
                                             normalize_input=False,
                                             rng=rng, lower=lower,
                                             upper=upper, noise=noise,
-                                            pool_size=pool_size)
+                                            pool_size=pool_size,
+                                            verbose_gp=verbose_gp)
 
     def train(self, X, y, do_optimize=True, **kwargs):
         X_norm, _, _ = normalization.zero_one_normalization(X[:, :-1], self.lower, self.upper)

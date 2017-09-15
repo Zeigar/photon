@@ -296,7 +296,7 @@ class InformationGain(BaseAcquisitionFunction):
     def __init__(self, model, lower, upper,
                  Nb=50, Np=400, sampling_acquisition=None,
                  sampling_acquisition_kw={"par": 0.0},
-                 rng=None, **kwargs):
+                 rng=None, verbose=False, **kwargs):
 
         """
         The Information Gain acquisition_functions function for Entropy Search [1].
@@ -418,7 +418,8 @@ class InformationGain(BaseAcquisitionFunction):
             if not np.any(np.isinf(self.lmb)):
                 break
             else:
-                Logger().debug("Fabolas.InformationGain: Infinity")
+                if self.verbose:
+                    Logger().debug("Fabolas.InformationGain: Infinity")
 
         if len(self.zb.shape) == 1:
             self.zb = self.zb[:, None]
@@ -548,7 +549,8 @@ class InformationGainPerUnitCost(InformationGain):
     def __init__(self, model, cost_model,
                  lower, upper,
                  is_env_variable,
-                 n_representer=50):
+                 n_representer=50,
+                 verbose=False):
         """
         Information gain per unit cost as described in Swersky et al. [1] which
         computes the information gain of a configuration divided by it's cost.
@@ -585,6 +587,7 @@ class InformationGainPerUnitCost(InformationGain):
         """
         self.cost_model = cost_model
         self.n_dims = lower.shape[0]
+        self.verbose=verbose
 
         self.is_env = is_env_variable
 
@@ -676,7 +679,8 @@ class InformationGainPerUnitCost(InformationGain):
             if not np.any(np.isinf(self.lmb)):
                 break
             else:
-                Logger().debug("Fabolas.InformationGainPerUnitCost: Infinity")
+                if self.verbose:
+                    Logger().debug("Fabolas.InformationGainPerUnitCost: Infinity")
         if np.any(np.isinf(self.lmb)):
             raise ValueError("Could not sample valid representer points! LogEI is -infinity")
         if len(self.zb.shape) == 1:
