@@ -324,7 +324,9 @@ class Hyperpipe(BaseEstimator):
                         # todo: also pass greater_is_better=True/False to optimizer
                         config_score = (results_cv[self.config_optimizer.metric]['train'],
                                         results_cv[self.config_optimizer.metric]['test'],
-                                        results_cv['duration']['train'])
+                                        results_cv['duration']['train'],
+                                        results_cv['score_duration']['train'],
+                                        results_cv['score_duration']['test'])
 
 
                         # 3. inform optimizer about performance

@@ -121,7 +121,7 @@ class FabolasOptimizer(object):
 
     def evaluate_recent_performance(self, config, performance, subset_frac, tracking):
         score = performance[1]
-        cost = performance[2]
+        cost = performance[2]+performance[3]+performance[4]
         self._fabolas.process_result(config, int(subset_frac), score, cost, tracking)
 
 
