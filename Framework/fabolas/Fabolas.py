@@ -272,7 +272,7 @@ class Fabolas:
         # opt-loop
         elif self._n_init <= self._it < self._num_iterations:
             config = np.array(self._get_params_from_dict(config))
-            config = np.append(config, subset_frac)
+            config = np.append(config, self._transform(self._s_max/subset_frac))
             self._X = np.concatenate((self._X, config[None, :]), axis=0)
             self._Y = np.concatenate((self._Y, np.log(np.array([score]))), axis=0)  # Model the target function on a logarithmic scale
             self._cost = np.concatenate((self._cost, np.log(np.array([cost]))), axis=0)  # Model the cost function on a logarithmic scale
