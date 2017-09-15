@@ -844,9 +844,9 @@ class FabolasGPMCMC(GaussianProcessMCMC):
 
         self.models = self.pool.map(
             partial(self._instantiate_GP, X=X, y=y, kernel=self.kernel,
-                kwargs={
+                kw={
+                    'basis_function': self.basis_func,
                     'normalize_output': self.normalize_output,
-                    'normalize_input': self.normalize_input,
                     'lower': self.lower,
                     'upper': self.upper,
                     'rng': self.rng
@@ -855,6 +855,15 @@ class FabolasGPMCMC(GaussianProcessMCMC):
         )
 
         self.is_trained = True
+
+    @staticmethod
+    def _instantiate_GP(sample, X, y, kernel, kw):
+        kern = deepcopy(kernel)
+        kern.pars = np.exp(sample[:-1])
+        noise = np.exp(sample[-1])
+        model = FabolasGP(kern, noise=noise, **kw)
+        model.train(X, y, do_optimize=False)
+        return model
 
 
 class FabolasGP(GaussianProcess):
