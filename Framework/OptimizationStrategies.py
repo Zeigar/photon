@@ -96,9 +96,9 @@ class TimeBoxedRandomGridSearchOptimizer(RandomGridSearchOptimizer):
         if self.start_time is None:
             self.start_time = datetime.datetime.now()
             self.end_time = self.start_time + datetime.timedelta(minutes=self.limit_in_minutes)
-        for parameters in super(TimeBoxedRandomGridSearchOptimizer, self).next_config_generator():
+        for parameters, _, track in super(TimeBoxedRandomGridSearchOptimizer, self).next_config_generator():
             if datetime.datetime.now() < self.end_time:
-                yield parameters, 1, None
+                yield parameters, 1, track
 
 
 class FabolasOptimizer(object):
