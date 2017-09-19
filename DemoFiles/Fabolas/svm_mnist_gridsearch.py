@@ -19,15 +19,17 @@ train_data, test_data, train_labels, test_labels = train_test_split(
     test_size=1/7
 )
 
+jid = sys.argv[1] if len(sys.argv) > 1 else 0
+
 cv = KFold(n_splits=3, shuffle=True, random_state=0)
 
 n_train_data = len(train_data)
 pipe = Hyperpipe(
-    'mnistsvm_gridsearch',
+    'mnistsvm_tbrgridsearch_{id!s}'.format(id=jid),
     cv,
     optimizer='timeboxed_random_grid_search',
     optimizer_params={
-        'log': {'path': 'logs/', 'name': 'mnistsvm_gridsearch'}
+        'log': {'path': 'logs/', 'name': 'mnistsvm_tbrgridsearch_{id!s}'.format(id=jid)}
     },
     metrics=['accuracy'],
     verbose=2,
