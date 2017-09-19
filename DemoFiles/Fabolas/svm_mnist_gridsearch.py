@@ -25,7 +25,7 @@ n_train_data = len(train_data)
 pipe = Hyperpipe(
     'mnistsvm_gridsearch',
     cv,
-    optimizer='fabolas',
+    optimizer='grid_search',
     optimizer_params={
         'log': {'id': 'gridsearch', 'path': 'logs/', 'name': 'mnistsvm'}
     },
