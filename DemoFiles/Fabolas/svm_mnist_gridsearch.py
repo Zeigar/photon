@@ -35,7 +35,8 @@ pipe = Hyperpipe(
     verbose=2,
     logging=True
 )
-param_range = np.array(range(int(np.exp(-10)*10), int(np.exp(10)*10)))/10
-pipe += PipelineElement.create('svc', {'C': param_range, 'gamma': param_range})
+c_range = np.array(range(int(np.exp(-10)*10), int(np.exp(10)*10)))/10
+gamma_range = np.array(range(int(np.exp(-10)*10), int(np.exp(1)*10)))/10
+pipe += PipelineElement.create('svc', {'C':c_range, 'gamma': gamma_range})
 
 pipe.fit(train_data, train_labels)
