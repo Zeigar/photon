@@ -67,8 +67,8 @@ class GridSearchOptimizer(object):
 
 class RandomGridSearchOptimizer(GridSearchOptimizer):
 
-    def __init__(self, k=None):
-        super(RandomGridSearchOptimizer, self).__init__()
+    def __init__(self, k=None, **kwargs):
+        super(RandomGridSearchOptimizer, self).__init__(**kwargs)
         self.k = k
 
     def prepare(self, pipeline_elements):
@@ -82,8 +82,8 @@ class RandomGridSearchOptimizer(GridSearchOptimizer):
 
 class TimeBoxedRandomGridSearchOptimizer(RandomGridSearchOptimizer):
 
-    def __init__(self, limit_in_minutes=60):
-        super(TimeBoxedRandomGridSearchOptimizer, self).__init__()
+    def __init__(self, limit_in_minutes=60, **kwargs):
+        super(TimeBoxedRandomGridSearchOptimizer, self).__init__(**kwargs)
         self.limit_in_minutes = limit_in_minutes
         self.start_time = None
         self.end_time = None
