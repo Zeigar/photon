@@ -27,7 +27,7 @@ pipe = Hyperpipe(
     cv,
     optimizer='grid_search',
     optimizer_params={
-        'log': {'id': 'gridsearch', 'path': 'logs/', 'name': 'mnistsvm'}
+        'log': {'path': 'logs/', 'name': 'mnistsvm_gridsearch'}
     },
     metrics=['accuracy'],
     verbose=2,

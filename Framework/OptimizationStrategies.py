@@ -16,12 +16,10 @@ class GridSearchOptimizer(object):
         self.parameter_iterable = None
         self.next_config = self.next_config_generator()
         if log is not None:
-            log['id'] = int(log['id']) if 'id' in log else 0
             log['name'] = str(log['name']) if 'name' in log else self.__class__.__name__
             if 'path' not in log:
                 raise ValueError("log must contain the key path")
-            log['bn'] = '{name}_{id}'.format(name=log['name'], id=log['id'])
-            log['path'] = os.path.realpath(os.path.join(str(log['path']), log['bn']))
+            log['path'] = os.path.realpath(os.path.join(str(log['path']), log['name']))
             if not os.path.exists(log['path']):
                 os.makedirs(log['path'])
         self.log = log
@@ -62,7 +60,7 @@ class GridSearchOptimizer(object):
             l.update(track)
             with open(os.path.join(
                 self.log['path'],
-                self.log['bn'] + '_it{it}.json'.format(it=l['iteration'])
+                self.log['name'] + '_it{it}.json'.format(it=l['iteration'])
             ), 'w') as f:
                 json.dump(l, f)
 
