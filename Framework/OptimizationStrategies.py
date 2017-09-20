@@ -50,14 +50,14 @@ class GridSearchOptimizer(object):
             it += 1
             yield param_dict, 1, track
 
-    def evaluate_recent_performance(self, config, performance, _, __, track):
+    def evaluate_recent_performance(self, config, performance, config_item, subset_frac, tracking):
         # influence return value of next_config
         if self.log is not None:
             l = {
                 'config': config,
                 'performance': performance,
             }
-            l.update(track)
+            l.update(tracking)
             with open(os.path.join(
                 self.log['path'],
                 self.log['name'] + '_it{it}.json'.format(it=l['iteration'])
