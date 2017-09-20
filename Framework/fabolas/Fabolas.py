@@ -61,27 +61,28 @@ class Fabolas:
         self._number_param_keys = []
         param_types = []
         self._param_dict = {}
-        for key, val in pipeline_elements[0].hyperparameters.items():
-            key = pipeline_elements[0].name + '__' + key
-            if isinstance(val, list):
-                if not len(val) >= 3 \
-                        or not isinstance(val[0], numbers.Number)\
-                        or not isinstance(val[1], numbers.Number)\
-                        or not (val[2] is int or val[2] is float):
-                    raise ValueError(
-                        "Hyperparam '"+key+"' is not a list with [lowerbound, upperbound, int/float]"
-                    )
+        for pelem in pipeline_elements:
+            for key, val in pelem.hyperparameters.items():
+                key = pipeline_elements[0].name + '__' + key
+                if isinstance(val, list):
+                    if not len(val) >= 3 \
+                            or not isinstance(val[0], numbers.Number)\
+                            or not isinstance(val[1], numbers.Number)\
+                            or not (val[2] is int or val[2] is float):
+                        raise ValueError(
+                            "Hyperparam '"+key+"' is not a list with [lowerbound, upperbound, int/float]"
+                        )
 
-                if val[0] > val[1]:
-                    raise ValueError(
-                        "Error for param '"+key+"'."
-                        "First value must be lower bound, second value must be upper bound."
-                    )
-                self._number_param_keys.append(key)
-                self._lower.append(val[0])
-                self._upper.append(val[1])
-                param_types.append(val[2])
-            self._param_dict.update({key: val})
+                    if val[0] > val[1]:
+                        raise ValueError(
+                            "Error for param '"+key+"'."
+                            "First value must be lower bound, second value must be upper bound."
+                        )
+                    self._number_param_keys.append(key)
+                    self._lower.append(val[0])
+                    self._upper.append(val[1])
+                    param_types.append(val[2])
+                self._param_dict.update({key: val})
 
         self._param_int_indices = np.where(np.array(param_types) == int)[0]
 
