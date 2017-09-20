@@ -130,13 +130,14 @@ class FabolasOptimizer(object):
 #         self.params_to_optimize = params_to_optimize
 #         self.next_config = self.next_config_generator()
 #         self.next_config_to_try = 1
+#
 #     def prepare(self, pipeline_elements):
 #         pass
 #
 #     def next_config_generator(self):
 #         yield self.next_config_to_try
 #
-#     def evaluate_recent_performance(self, config, performance):
+#     def evaluate_recent_performance(self, config, performance, config_item, subset_frac, tracking):
 #         # according to the last performance for the given config,
 #         # the next item should be chosen wisely
 #         self.next_config_to_try = self.params_to_optimize(2)
