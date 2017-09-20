@@ -29,6 +29,7 @@ pipe = Hyperpipe(
     cv,
     optimizer='timeboxed_random_grid_search',
     optimizer_params={
+        'limit_in_minutes': 60*24*2,
         'log': {'path': 'logs/', 'name': 'mnistsvm_tbrgridsearch_{id!s}'.format(id=jid)}
     },
     metrics=['accuracy'],
