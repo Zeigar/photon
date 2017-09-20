@@ -189,7 +189,8 @@ class HorseshoePrior(BasePrior):
         # We computed it exactly as in the original spearmint code
         if np.any(theta == 0.0):
             return np.inf
-        return np.log(np.log(1 + 3.0 * (self.scale / np.exp(theta)) ** 2))
+        with np.errstate(divide='ignore'):
+            return np.log(np.log(1 + 3.0 * (self.scale / np.exp(theta)) ** 2))
 
     def sample_from_prior(self, n_samples):
         """
