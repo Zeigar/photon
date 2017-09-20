@@ -1,0 +1,15 @@
+###### Requirements without Version Specifiers ######
+numpy
+matplotlib
+tensorflow
+slackclient
+progressbar2
+Pillow
+scikit-learn
+keras
+nilearn
+pandas
+nibabel
+pandas
+six
+h5py

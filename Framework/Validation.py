@@ -1,44 +1,30 @@
 import time
+import traceback
 import warnings
-from collections import OrderedDict
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
 
 from Helpers.TFUtilities import one_hot_to_binary
 from Logging.Logger import Logger
-from .ResultLogging import ResultLogging, OutputMetric, FoldMetrics, FoldTupel, Configuration
+from .ResultLogging import FoldMetrics, FoldTupel, FoldOperations, Configuration, MasterElementType
 
 
 class TestPipeline(object):
 
-    def __init__(self, pipe, specific_config, metrics, verbose=0,
-                 fit_params={}, error_score='raise'):
+    def __init__(self, pipe, specific_config, metrics):
 
         self.params = specific_config
         self.pipe = pipe
         self.metrics = metrics
-        # print(self.params)
-
-        # default
-        self.return_train_score = True
-        self.verbose = verbose
-        self.fit_params = fit_params
-        self.error_score = error_score
-
-        self.cv_results = OrderedDict()
-        self.labels = []
-        self.predictions = []
+        self.raise_error = True
 
     def calculate_cv_score(self, X, y, cv_iter):
-
-        n_train = []
-        n_test = []
 
         # needed for testing Timeboxed Random Grid Search
         # time.sleep(35)
 
-        config_item = Configuration(self.params)
+        config_item = Configuration(MasterElementType.INNER_TRAIN, self.params)
         fold_cnt = 0
 
         for train, test in cv_iter:
@@ -55,36 +41,21 @@ class TestPipeline(object):
 
                 fold_cnt += 1
 
-                curr_train_fold = FoldMetrics()
-                curr_test_fold = FoldMetrics()
 
-                n_train.append(len(train))
-                n_test.append(len(test))
                 self.pipe.set_params(**self.params)
                 fit_start_time = time.time()
                 self.pipe.fit(X[train], y[train])
+
+                # Todo: Fit Process Metrics
+
                 fit_duration = time.time()-fit_start_time
                 config_item.fit_duration = fit_duration
 
-                # do this twice so it is the same for train and test reportings
-                self.cv_results.setdefault('duration', []).append(fit_duration)
-                self.cv_results.setdefault('duration', []).append(fit_duration)
-
                 # score test data
-                score_test_data_time = time.time()
-                output_test_metrics = self.score(self.pipe, X[test], y[test])
-                score_test_data_duration = time.time() - score_test_data_time
-                self.cv_results.setdefault('score_duration', []).append(score_test_data_duration)
-                curr_test_fold.metrics = output_test_metrics
-                curr_test_fold.score_duration = score_test_data_duration
+                curr_test_fold = TestPipeline.score(self.pipe, X[test], y[test], self.metrics)
 
                 # score train data
-                score_train_data_time = time.time()
-                output_train_metrics = self.score(self.pipe, X[train], y[train])
-                score_train_data_duration = time.time() - score_train_data_time
-                self.cv_results.setdefault('score_duration', []).append(score_train_data_duration)
-                curr_train_fold.metrics = output_train_metrics
-                curr_train_fold.score_duration = score_train_data_duration
+                curr_train_fold = TestPipeline.score(self.pipe, X[train], y[train], self.metrics)
 
                 fold_tuple_item = FoldTupel(fold_cnt)
                 fold_tuple_item.test = curr_test_fold
@@ -93,52 +64,54 @@ class TestPipeline(object):
                 fold_tuple_item.number_samples_test = len(test)
                 config_item.fold_list.append(fold_tuple_item)
 
-
-
             except Exception as e:
-                # Todo: Logging!
-                # Logger().error(e)
+                if self.raise_error:
+                    raise e
+                Logger().error(e)
+                traceback.print_exc()
+                config_item.config_failed = True
+                config_item.config_error = str(e)
                 warnings.warn('One test iteration of pipeline failed with error')
 
-            # cv_scores.append(fit_and_predict_score)
+        # calculate mean and std
+        config_item.calculate_metrics(self.metrics)
 
-        # reorder results because now train and test simply alternates in a list
-        # reorder_results() puts the results under keys "train" and "test"
-        # it also calculates mean of metrics and std
-        # self.cv_results is updated whenever the self.score is used (which happens within _fit_and_score
-        # in self.cv_results, test score is first, train score is second
-        self.cv_results = ResultLogging.reorder_results(self.cv_results)
-        self.cv_results['n_samples'] = {'train': n_train, 'test': n_test}
+        return config_item
 
-        return self.cv_results, config_item,
+    @staticmethod
+    def score(estimator, X, y_true, metrics):
 
-    def score(self, estimator, X, y_true):
+        scoring_time_start = time.time()
 
+        output_metrics = {}
+        non_default_score_metrics = list(metrics)
+        if 'score' in metrics:
+            if hasattr(estimator, 'score'):
+                # Todo: Here it is potentially slowing down!!!!!!!!!!!!!!!!
+                default_score = estimator.score(X, y_true)
+                output_metrics['score'] = default_score
+                non_default_score_metrics.remove('score')
 
-        if hasattr(estimator, 'score'):
-            # Todo: Here it is potentially slowing down!!!!!!!!!!!!!!!!
-            default_score = estimator.score(X, y_true)
-            Logger().warn('Attention: Scoring with default score function of estimator can slow down calculations!')
-        else:
-            default_score = -1
-        # use cv_results as class variable to get results out of
-        # _predict_and_score() method
-        self.cv_results.setdefault('score', []).append(default_score)
-
-        y_pred = self.pipe.predict(X)
-
-        self.predictions.append(y_pred)
-        self.labels.append(y_true)
+        y_pred = estimator.predict(X)
 
         # Nice to have
         # TestPipeline.plot_some_data(y_true, y_pred)
 
-        score_metrics = TestPipeline.score_metrics(y_true, y_pred, self.metrics, self.cv_results)
-        return score_metrics
+        score_metrics = TestPipeline.calculate_metrics(y_true, y_pred, non_default_score_metrics)
 
+        # add default metric
+        if output_metrics:
+            output_metrics = {**output_metrics, **score_metrics}
+        else:
+            output_metrics = score_metrics
+
+        final_scoring_time = time.time() - scoring_time_start
+        score_result_object = FoldMetrics(output_metrics, final_scoring_time, y_predicted=y_pred, y_true=y_true)
+
+        return score_result_object
 
     @staticmethod
-    def score_metrics(y_true, y_pred, metrics, cv_result_dict=None):
+    def calculate_metrics(y_true, y_pred, metrics):
 
         if np.ndim(y_pred) == 2:
             y_pred = one_hot_to_binary(y_pred)
@@ -148,27 +121,23 @@ class TestPipeline(object):
             y_true = one_hot_to_binary(y_true)
             Logger().warn("test_y was one hot encoded => transformed to binary")
 
-        output_metrics = []
+        output_metrics = {}
         if metrics:
             for metric in metrics:
                 scorer = Scorer.create(metric)
                 scorer_value = scorer(y_true, y_pred)
+                output_metrics[metric] = scorer_value
 
-                output_metric_item = OutputMetric(metric, scorer_value)
-                output_metrics.append(output_metric_item)
-                # use setdefault method of dictionary to create list under
-                # specific key even in case no list exists
-                if cv_result_dict:
-                    cv_result_dict.setdefault(metric, []).append(scorer_value)
         return output_metrics
 
-    @staticmethod
-    def plot_some_data(data, targets_true, targets_pred):
-        ax_array = np.arange(0, data.shape[0], 1)
-        plt.figure().clear()
-        plt.plot(ax_array, data, ax_array, targets_true, ax_array, targets_pred)
-        plt.title('A sample of data')
-        plt.show()
+    # @staticmethod
+    # def plot_some_data(data, targets_true, targets_pred):
+    #     ax_array = np.arange(0, data.shape[0], 1)
+    #     plt.figure().clear()
+    #     plt.plot(ax_array, data, ax_array, targets_true, ax_array, targets_pred)
+    #     plt.title('A sample of data')
+    #     plt.show()
+
 
 class Scorer(object):
 
@@ -187,6 +156,8 @@ class Scorer(object):
         'mean_absolute_error': ('sklearn.metrics', 'mean_absolute_error'),
         'explained_variance': ('sklearn.metrics', 'explained_variance_score'),
         'r2': ('sklearn.metrics', 'r2_score'),
+        'pearson_correlation': ('Framework.Metrics', 'pearson_correlation'),
+        'variance_explained':  ('Framework.Metrics', 'variance_explained'),
         'categorical_accuracy': ('Framework.Metrics','categorical_accuracy_score')
     }
 
@@ -227,26 +198,30 @@ class OptimizerMetric(object):
         self.set_optimizer_metric(pipeline_elements)
 
     def check_metrics(self):
-        if not self.metric == 'score':
-            if self.other_metrics:
-                if self.metric not in self.other_metrics:
-                    self.other_metrics.append(self.metric)
-            # maybe there's a better solution to this
-            else:
-                self.other_metrics = [self.metric]
+        if self.other_metrics:
+            if self.metric not in self.other_metrics:
+                self.other_metrics.append(self.metric)
+        # maybe there's a better solution to this
+        else:
+            self.other_metrics = [self.metric]
         return self.other_metrics
 
-    def get_optimum_config_idx(self, performance_metrics, metric_to_optimize):
-        if self.greater_is_better:
-            # max metric plus min std:
-            one_minus_std = np.subtract(1, performance_metrics[metric_to_optimize + '_std']['test'])
-            combined_metric = np.add(performance_metrics[metric_to_optimize]['test'], one_minus_std)
-            best_config_nr = np.argmax(combined_metric)
-        else:
-            combined_metric = np.add(performance_metrics[metric_to_optimize]['test'],
-                                     performance_metrics[metric_to_optimize + '_std']['test'])
-            best_config_nr = np.argmin(combined_metric)
-        return best_config_nr
+    def get_optimum_config(self, tested_configs):
+        list_of_config_vals = []
+
+        try:
+            for config in tested_configs:
+                list_of_config_vals.append(config.get_metric(FoldOperations.MEAN, self.metric, train=False))
+
+            if self.greater_is_better:
+                # max metric
+                best_config_metric_nr = np.argmax(list_of_config_vals)
+            else:
+                # min metric
+                best_config_metric_nr = np.argmin(list_of_config_vals)
+            return tested_configs[best_config_metric_nr]
+        except BaseException as e:
+            Logger().error(str(e))
 
     def set_optimizer_metric(self, pipeline_elements):
         if isinstance(self.metric, str):

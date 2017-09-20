@@ -13,13 +13,16 @@ from Framework.PhotonBase import PipelineElement, Hyperpipe
 from Logging.Logger import Logger
 
 logger = Logger()
+development = False # If True using smaller samples
 ##
 # Loads the images. They have to be 299x299 pixels.
 # returns (X_train, y_train)
 def load_skin_cancer_data(use_tempfiles: True):
-    path_benign_images='/spm-data-cached/Scratch/spielwiese_claas/ISIC-images-benign/299x299/'
-    path_malignant_images='/spm-data-cached/Scratch/spielwiese_claas/ISIC-images-malignant/299x299/'
-    path_temp_files_folder='/spm-data-cached/Scratch/spielwiese_claas/'
+    root_path='/spm-data-cached/Scratch/spielwiese_claas/'
+    root_path = '/home/claas/skin_cancer/'
+    path_benign_images=root_path + 'ISIC-images-benign/299x299/'
+    path_malignant_images=root_path + 'ISIC-images-malignant/299x299/'
+    path_temp_files_folder=root_path + ''
 
     skin_cancer_data = Path(path_temp_files_folder + "skin_cancer_data.npy")
     skin_cancer_labels = Path(path_temp_files_folder + "skin_cancer_labels.npy")
@@ -70,6 +73,11 @@ def split_balanced_test_data_from_current_data(X_train, y_train, group_size=100)
     y_test = np.concatenate([y_train[:group_size],  y_train[-group_size:]])
     X_train_new = X_train[group_size:-group_size]
     y_train_new = y_train[group_size:-group_size]
+    if development:
+        logger.warn("!!!! Development mode is enabled, using smaller samples !!!!")
+        X_train_new = X_train_new[0:1000]
+        y_train_new = y_train_new[0:1000]
+
     return (X_train_new, y_train_new, X_test, y_test)
 
 X_train, y_train = load_skin_cancer_data(use_tempfiles=True)
@@ -89,10 +97,10 @@ logger.info(
 
 #cv = KFold(n_splits=5, random_state=23)
 my_pipe = Hyperpipe('Skin Cancer VGG18 finetuning', optimizer='grid_search',
-                            metrics=['categorical_accuracy', 'f1_score', 'confusion_matrix', 'accuracy'], best_config_metric='categorical_accuracy',
-                            hyperparameter_specific_config_cv_object=cv,
-                            hyperparameter_search_cv_object=cv,
-                            eval_final_performance=True, verbose=2)
+                    metrics=['categorical_accuracy', 'f1_score', 'confusion_matrix', 'accuracy'], best_config_metric='categorical_accuracy',
+                    inner_cv=cv,
+                    outer_cv=cv,
+                    eval_final_performance=True, verbose=2)
 #my_pipe += PipelineElement.create('standard_scaler')
 my_pipe += PipelineElement.create('PretrainedCNNClassifier',
                                   {'input_shape': [(299,299,3)],'target_dimension': [2],
@@ -105,5 +113,7 @@ balanced_accuracy = accuracy_score(tfu.one_hot_to_binary(y_test), y_pred)
 logger.info("Accuracy from independent balanced sample: {}".format(balanced_accuracy))
 best_model = load_model('pretrained_cnn_cancer.hdf5')
 y_pred_best = best_model.predict(X_test)
+logger.debug("y_pred_best: {}".format(y_pred_best))
+y_pred_best = np.argmax(y_pred_best, axis=1)
 balanced_accuracy_best = accuracy_score(tfu.one_hot_to_binary(y_test), y_pred_best)
-logger.info("Accuracy from independent balanced sample: {}".format(balanced_accuracy_best))
+logger.info("Accuracy for best model from independent balanced sample: {}".format(balanced_accuracy_best))

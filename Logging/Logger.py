@@ -3,6 +3,9 @@ import inspect
 from enum import Enum
 from functools import total_ordering
 
+from slackclient import SlackClient
+
+from Framework.PhotonConf import PhotonConf
 
 """ Logging is a simple way to emit and store logs.
 
@@ -60,33 +63,40 @@ class Singleton:
 
 @Singleton
 class Logger:
-
     def __init__(self):
+        # load configuration
+        conf = PhotonConf()
+        logging_conf = conf.config['LOGGING']
 
         # handle multiple instances of hyperpipe
         self.loggers = []
-
 
         # Set default LogLevel
         # Should be LogLevel.WARN!
         # Is LogLevel.DEBUG now only for testing purposes
         self._log_level = self.LogLevel.INFO
 
+        self.log_level_console = self.LogLevel.INFO
+        self.log_level_slack = self.LogLevel.INFO
+        self.log_level_file = self.LogLevel.INFO
+
         # Should the log also be printed to the console?
         # Recommendation: Set to True during development, false in production-environment
-        self._print_to_console = True
-        self._print_to_slack = False
-        self._print_to_txt = True
-        self._logfile_name = 'photon.log'
+        self._print_to_console = logging_conf.getboolean('print_to_console')
+        self._print_to_slack = logging_conf.getboolean('print_to_slack')
+        self._slack_token = logging_conf['slack_token']
+        self._slack_channel = logging_conf['slack_channel']
+        self._print_to_file = logging_conf.getboolean('print_to_file')
+        self._logfile_name = logging_conf['logfile_name']
         with open(self._logfile_name, "w") as text_file:
             text_file.write('PHOTON LOGFILE - ' + str(datetime.datetime.utcnow()))
 
+    @staticmethod
     def set_print_to_console(self, status: bool):
         self._print_to_console = status
 
     def set_print_to_slack(self, status: bool):
-        self._print_to_console = status
-
+        self._print_to_slack = status
 
     def set_log_level(self, level):
         """" Use this method to change the log level. """
@@ -103,40 +113,33 @@ class Logger:
         else:
             self.set_log_level(self.LogLevel.WARN)
 
-
-        # Debug should be used for information that may be useful for program-debugging (most information)
-
+    # Debug should be used for information that may be useful for program-debugging (most information
     # i.e. training epochs of neural nets
     def debug(self, message: str):
-        if (self._log_level <= self.LogLevel.DEBUG):
-            self._distribute_log(message,
-                                      'DEBUG')
+        if self._log_level <= self.LogLevel.DEBUG:
+            self._distribute_log(message, 'DEBUG')
 
     # Verbose should be used if something interesting (but uncritically) happened
     # i.e. every hp config that is tested
     def verbose(self, message: str):
-        if (self._log_level <= self.LogLevel.VERBOSE):
-            self._distribute_log(message,
-                                      'VERBOSE')
+        if self._log_level <= self.LogLevel.VERBOSE:
+            self._distribute_log(message, 'VERBOSE')
 
     # Info should be used if something interesting (but uncritically) happened
     # i.e. most basic info on photon hyperpipe
     def info(self, message: str):
-        if (self._log_level <= self.LogLevel.INFO):
-            self._distribute_log(message,
-                                      'INFO')
+        if self._log_level <= self.LogLevel.INFO:
+            self._distribute_log(message, 'INFO')
 
     # Something may have gone wrong? Use warning
     def warn(self, message: str):
-        if (self._log_level <= self.LogLevel.WARN):
-            self._distribute_log(message,
-                                      'WARN')
+        if self._log_level <= self.LogLevel.WARN:
+            self._distribute_log(message, 'WARN')
 
     # Something broke down. Error should be used if something unexpected happened
     def error(self, message: str):
-        if (self._log_level <= self.LogLevel.ERROR):
-            self._distribute_log(message,
-                                      'ERROR')
+        if self._log_level <= self.LogLevel.ERROR:
+            self._distribute_log(message, 'ERROR')
 
     # Takes a message and inserts it into the given collection
     # Handles possible console-logging
@@ -146,26 +149,30 @@ class Logger:
 
         if self._print_to_console:
             self._print_entry(entry)
-        if self._print_to_txt:
+        if self._print_to_file:
             self._write_to_file(entry)
         if self._print_to_slack:
             self._send_to_slack(entry)
 
     def _send_to_slack(self, entry: dict):
-        from slackclient import SlackClient
-        from os import environ
+        if self._slack_token:
+            try:
+                sc = SlackClient(self._slack_token)
 
-        slack_token = "xoxp-113254200629-113099992147-232630779537-e7947c07faa87ab4567cdb8d6719b81c"
+                sc.api_call(
+                    "chat.postMessage",
+                    channel=self._slack_channel,
+                    text="{}: {}".format(entry['log_type'], entry['message'])
+                )
+            except:
+                # Todo: catch channel not found exception
+                print("Could not print to Slack") # <- cant use Logger here because it would cause an endless loop
+                pass
+        else:
+            print('Error: No Slack Token Set')
 
-        sc = SlackClient(slack_token)
-
-        sc.api_call(
-            "chat.postMessage",
-            channel="#photon-log",
-            text="{}: {}".format(entry['log_type'], entry['message'])
-        )
-
-    def _print_entry(self, entry: dict):
+    @staticmethod
+    def _print_entry(entry: dict):
         date_str = entry['logged_date'].strftime("%Y-%m-%d %H:%M:%S")
         print("{0} UTC - {1}: {2}".format(date_str, entry['log_type'], entry['message']))
 
@@ -174,13 +181,13 @@ class Logger:
             text_file.write('\n')
             text_file.write(str(entry['message']))
 
-    def _generate_log_entry(self, message: str, log_type: str):
+    @staticmethod
+    def _generate_log_entry(message: str, log_type: str):
         """Todo: Get current user from user-service and add username to log_entry"""
-        log_entry = {}
-        log_entry['log_type'] = log_type
-        log_entry['logged_date'] = datetime.datetime.utcnow()
-        log_entry['message'] = message
-        if (inspect.stack()[3][3]):
+        log_entry = {'log_type': log_type,
+                     'logged_date': datetime.datetime.utcnow(),
+                     'message': message}
+        if inspect.stack()[3][3]:
             # If the call stack is changed the first array selector has to be changed
             log_entry['called_by'] = inspect.stack()[3][3]
         else:
@@ -189,8 +196,6 @@ class Logger:
         return log_entry
 
     def store_logger_names(self, name):
-        #print('Appending name ', name)
-
         return self.loggers.append(name)
 
     # Definition of LogLevels, the lower the number, the stronger the logging will be

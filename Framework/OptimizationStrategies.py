@@ -50,7 +50,7 @@ class GridSearchOptimizer(object):
             it += 1
             yield param_dict, 1, track
 
-    def evaluate_recent_performance(self, config, performance, _, track):
+    def evaluate_recent_performance(self, config, performance, _, __, track):
         # influence return value of next_config
         if self.log is not None:
             l = {
@@ -117,9 +117,11 @@ class FabolasOptimizer(object):
     def next_config_generator(self):
         yield from self._fabolas.calc_config()
 
-    def evaluate_recent_performance(self, config, performance, subset_frac, tracking):
+    def evaluate_recent_performance(self, config, performance, config_item, subset_frac, tracking):
         score = performance[1]
-        cost = performance[2]+performance[3]+performance[4]
+        cost = 0
+        for elem in config_item.fold_list:
+            cost += elem.test.score_duration + elem.train.score_duration
         self._fabolas.process_result(config, int(subset_frac), score, cost, tracking)
 
 
