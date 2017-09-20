@@ -1,56 +1,36 @@
-
 // Output from Designer to Manager
 
 {
-  "type": "hyperpipe",
-  "name": "case_a",
-  "metrics": [
-    "accuracy",
-    "f1_score"
-  ],
-  "cv_split_test": 0.2,
-  "cv_strategy_specific_config": {
-    "type": "KFold",
+  "cross_validation": {
     "parameters": {
       "n_splits": "3"
-    }
+    },
+    "type": "kfold_cv"
   },
-  "cv_strategy_hyperparameter_search": {
-    "type": "KFold",
-    "parameters": {
-      "n_splits": "3"
-    }
-  },
-  "optimizer": {
-    "type": "time_boxed_random_grid_search",
-    "parameters": {
-      "limit_in_minutes": "10"
+  "data_sources": {
+    "Source_1": {
+      "source": "",
+      "source_format": "path",
+      "source_size": 0
     }
   },
   "elements": [
     {
-      "type": "standard_scaler",
-      "hyperparameter": {},
-      "test_disabled": "True",
-      "default_settings": {}
+      "hyperparameters": {},
+      "type": "standard_scaler"
     },
     {
-      "type": "pca",
-      "hyperparameter": {
+      "hyperparameters": {
         "n_components": [
           "10",
           "20",
           "30"
         ]
       },
-      "test_disabled": "True",
-      "default_settings": {
-        "whiten": "True"
-      }
+      "type": "pca"
     },
     {
-      "type": "svc",
-      "hyperparameter": {
+      "hyperparameters": {
         "C": [
           0.5,
           1,
@@ -61,10 +41,27 @@
           "linear"
         ]
       },
-      "test_disabled": "False",
-      "default_settings": {}
+      "type": "svc"
     }
-  ]
+  ],
+  "metrics": [
+    "accuracy",
+    "f1_score"
+  ],
+  "name": "Outer Hyperpipe",
+  "optimizer": {
+    "parameters": {
+      "limit_in_minutes": "10"
+    },
+    "type": "time_boxed_random_grid_search"
+  },
+  "outer_cross_validation": {
+    "parameters": {
+      "n_splits": "3"
+    },
+    "type": "kfold_cv"
+  },
+  "type": "outer_hyperpipe"
 }
 
 // Output from Manager to Client:
