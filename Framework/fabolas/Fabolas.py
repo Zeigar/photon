@@ -36,6 +36,7 @@ class Fabolas:
             verbose_gp=False,
             consider_opt_time=False,
             log=None,
+            maximizer_func_evals=200,
             **_
     ):
         assert n_init <= num_iterations, "Number of initial design point has to be <= than the number of iterations"
@@ -222,7 +223,7 @@ class Fabolas:
             extend_upper,
             verbose=self._verbose_maximizer,
             logfilename=direct_logfile,
-            n_func_evals=200
+            n_func_evals=maximizer_func_evals
         )
 
     def calc_config(self):
