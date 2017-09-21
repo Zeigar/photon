@@ -754,9 +754,9 @@ class MarginalizationGPMCMC(BaseAcquisitionFunction):
         for i in range(len(self.model.models)):
             if self.cost_model is not None:
                 if len(self.cost_model.models) == 0:
-                    model_args.append(self.cost_model.models[i])
-                else:
                     model_args.append(None)
+                else:
+                    model_args.append(self.cost_model.models[i])
             else:
                 model_args.append(self.model.models[i])
 
@@ -803,7 +803,7 @@ class MarginalizationGPMCMC(BaseAcquisitionFunction):
         if mdl_cost is not None:
             estimator.update(mdl, mdl_cost, **kw)
         else:
-            estimator.update(mdl, kw)
+            estimator.update(mdl, **kw)
         return estimator
 
     def compute(self, X_test, derivative=False):
