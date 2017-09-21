@@ -274,7 +274,6 @@ class Hyperpipe(BaseEstimator):
                         self.distribute_cv_info_to_hyperpipe_children(reset=True)
                         hp = TestPipeline(self.pipe, specific_config, self.metrics)
                         Logger().debug('optimizing of:' + self.name)
-                        Logger().debug(self.optimize_printing(specific_config))
                         Logger().debug('calculating...')
 
                         # Some algorithms (like fabolas) train only on a fraction of the whole set
