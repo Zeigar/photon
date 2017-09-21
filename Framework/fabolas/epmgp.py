@@ -16,21 +16,15 @@ def joint_min(mu, var, with_derivatives=False, **kwargs):
     Gaussian probabilities and expectation propagation.
     under review. Preprint at arXiv, November 2011.
 
-    Parameters
-    ----------
-    M: np.ndarray(N,)
-        Mean value of each of the N points.
+    :param mu: Mean value of each of the N points.
+    :type mu: np.ndarray(N,)
+    :param var: Covariance matrix for all points
+    :type var: np.ndarray(N, N)
+    :param with_derivatives: If true than also the gradients are computed
+    :type with_derivatives: bool
 
-    V: np.ndarray(N, N)
-        Covariance matrix for all points
-
-    with_derivatives: bool
-        If true than also the gradients are computed
-
-    Returns
-    -------
-    np.ndarray(N,1)
-        pmin distribution
+    :return: pmin distribution
+    :rtype: np.ndarray(N,1)
     """
 
     logP = np.zeros(mu.shape)
@@ -228,11 +222,6 @@ def lt_factor(s, l, M, V, mp, p, gamma):
         Mnew = M + (dmp - cM * dp) / (1 + dp * cVc) * Vc
         logS = 0
     return Mnew, Vnew, pnew, mpnew, logS, d
-
-
-"""
-log_relative_gauss
-"""
 
 
 def log_relative_gauss(z):

@@ -8,10 +8,8 @@ class BasePrior(object):
         Abstract base class to define the interface for priors
         of GP hyperparameter.
 
-        Parameters
-        ----------
-        rng: np.random.RandomState
-            Random number generator
+        :param rng: Random number generator
+        :type rng: np.random.RandomState
 
         """
         if rng is None:
@@ -24,15 +22,11 @@ class BasePrior(object):
         Returns the log probability of theta. Note: theta should
         be on a log scale.
 
-        Parameters
-        ----------
-        theta : (D,) numpy array
-            A hyperparameter configuration in log space.
+        :param theta: A hyperparameter configuration in log space.
+        :type theta: numpy array (D,)
 
-        Returns
-        -------
-        float
-            The log probability of theta
+        :return: The log probability of theta
+        :rtype: float
         """
         pass
 
@@ -40,15 +34,11 @@ class BasePrior(object):
         """
         Returns N samples from the prior.
 
-        Parameters
-        ----------
-        n_samples : int
-            The number of samples that will be drawn.
+        :param n_samples: The number of samples that will be drawn.
+        :type n_samples: int
 
-        Returns
-        -------
-        (N, D) np.array
-            The samples from the prior.
+        :return: The samples from the prior.
+        :rtype: np.array(N, D)
         """
         pass
 
@@ -57,15 +47,11 @@ class BasePrior(object):
         Computes the gradient of the prior with
         respect to theta.
 
-        Parameters
-        ----------
-        theta : (D,) numpy array
-            Hyperparameter configuration in log space
+        :param theta: Hyperparameter configuration in log space
+        :type theta: numpy array(D,)
 
-        Returns
-        -------
-        (D) np.array
-            The gradient of the prior at theta.
+        :return: The gradient of the prior at theta.
+        :rtype: np.array(D)
         """
         pass
 
@@ -75,14 +61,12 @@ class TophatPrior(BasePrior):
         """
         Tophat prior as it used in the original spearmint code.
 
-        Parameters
-        ----------
-        l_bound : float
-            Lower bound of the prior. Note the log scale.
-        u_bound : float
-            Upper bound of the prior. Note the log scale.
-        rng: np.random.RandomState
-            Random number generator
+        :param l_bound: Lower bound of the prior. Note the log scale.
+        :type l_bound: float
+        :param u_bound: Upper bound of the prior. Note the log scale.
+        :type u_bound: float
+        :param rng: Random number generator
+        :type rng: np.random.RandomState
         """
         if rng is None:
             self.rng = np.random.RandomState(np.random.randint(0, 10000))
@@ -99,15 +83,11 @@ class TophatPrior(BasePrior):
         Returns the log probability of theta. Note: theta should
         be on a log scale.
 
-        Parameters
-        ----------
-        theta : (D,) numpy array
-            A hyperparameter configuration in log space.
+        :param theta: A hyperparameter configuration in log space.
+        :type theta: numpy array(D,)
 
-        Returns
-        -------
-        float
-            The log probability of theta
+        :return: The log probability of theta
+        :rtype: float
         """
 
         if np.any(theta < self.min) or np.any(theta > self.max):
@@ -119,15 +99,11 @@ class TophatPrior(BasePrior):
         """
         Returns N samples from the prior.
 
-        Parameters
-        ----------
-        n_samples : int
-            The number of samples that will be drawn.
+        :param n_samples: The number of samples that will be drawn.
+        :type n_samples: int
 
-        Returns
-        -------
-        (N, D) np.array
-            The samples from the prior.
+        :return: The samples from the prior.
+        :rtype: np.array(N, D)
         """
 
         p0 = self.min + self.rng.rand(n_samples) * (self.max - self.min)
@@ -138,16 +114,11 @@ class TophatPrior(BasePrior):
         Computes the gradient of the prior with
         respect to theta.
 
-        Parameters
-        ----------
-        theta : (D,) numpy array
-            Hyperparameter configuration in log space
+        :param theta: Hyperparameter configuration in log space
+        :type theta: numpy array(D,)
 
-        Returns
-        -------
-        (D) np.array
-
-            The gradient of the prior at theta.
+        :return: The gradient of the prior at theta.
+        :rtype: np.array(D)
         """
         return np.zeros([theta.shape[0]])
 
@@ -157,13 +128,11 @@ class HorseshoePrior(BasePrior):
         """
         Horseshoe Prior as it is used in spearmint
 
-        Parameters
-        ----------
-        scale: float
-            Scaling parameter. See below how it is influenced
+        :param scale: Scaling parameter. See below how it is influenced
             the distribution.
-        rng: np.random.RandomState
-            Random number generator
+        :type scale: float
+        :param rng: Random number generator
+        :type rng: np.random.RandomState
         """
         if rng is None:
             self.rng = np.random.RandomState(np.random.randint(0, 10000))
@@ -176,15 +145,11 @@ class HorseshoePrior(BasePrior):
         Returns the log probability of theta. Note: theta should
         be on a log scale.
 
-        Parameters
-        ----------
-        theta : (D,) numpy array
-            A hyperparameter configuration in log space.
+        :param theta: A hyperparameter configuration in log space.
+        :type theta: numpy array(D,)
 
-        Returns
-        -------
-        float
-            The log probability of theta
+        :return: The log probability of theta
+        :rtype: float
         """
         # We computed it exactly as in the original spearmint code
         if np.any(theta == 0.0):
@@ -196,15 +161,11 @@ class HorseshoePrior(BasePrior):
         """
         Returns N samples from the prior.
 
-        Parameters
-        ----------
-        n_samples : int
-            The number of samples that will be drawn.
+        :param n_samples: The number of samples that will be drawn.
+        :type n_samples: int
 
-        Returns
-        -------
-        (N, D) np.array
-            The samples from the prior.
+        :return: The samples from the prior.
+        :rtype: np.array(N, D)
         """
 
         lamda = np.abs(self.rng.standard_cauchy(size=n_samples))
@@ -217,15 +178,11 @@ class HorseshoePrior(BasePrior):
         Computes the gradient of the prior with
         respect to theta.
 
-        Parameters
-        ----------
-        theta : (D,) numpy array
-            Hyperparameter configuration in log space
+        :param theta: Hyperparameter configuration in log space
+        :type theta: numpy array(D,)
 
-        Returns
-        -------
-        (D) np.array
-            The gradient of the prior at theta.
+        :return: The gradient of the prior at theta.
+        :rtype: np.array(D)
         """
         a = -(6 * self.scale ** 2)
         b = (3 * self.scale ** 2 + np.exp(2 * theta))
@@ -238,15 +195,13 @@ class LognormalPrior(BasePrior):
         """
         Log normal prior
 
-        Parameters
-        ----------
-        sigma: float
-            Specifies the standard deviation of the normal
+        :param sigma: Specifies the standard deviation of the normal
             distribution.
-        mean: float
-            Specifies the mean of the normal distribution
-        rng: np.random.RandomState
-            Random number generator
+        :type sigma: float
+        :param mean: Specifies the mean of the normal distribution
+        :type mean: float
+        :param rng: Random number generator
+        :type rng: np.random.RandomState
         """
         if rng is None:
             self.rng = np.random.RandomState(np.random.randint(0, 10000))
@@ -261,15 +216,11 @@ class LognormalPrior(BasePrior):
         Returns the log probability of theta. Note: theta should
         be on a log scale.
 
-        Parameters
-        ----------
-        theta : (D,) numpy array
-            A hyperparameter configuration in log space.
+        :param theta: A hyperparameter configuration in log space.
+        :type theta: numpy array(D,)
 
-        Returns
-        -------
-        float
-            The log probability of theta
+        :return: The log probability of theta
+        :rtype: float
         """
 
         return sps.lognorm.logpdf(theta, self.sigma, loc=self.mean)
@@ -278,15 +229,11 @@ class LognormalPrior(BasePrior):
         """
         Returns N samples from the prior.
 
-        Parameters
-        ----------
-        n_samples : int
-            The number of samples that will be drawn.
+        :param n_samples: The number of samples that will be drawn.
+        :type n_samples: int
 
-        Returns
-        -------
-        (N, D) np.array
-            The samples from the prior.
+        :return: The samples from the prior.
+        :rtype: np.array(N, D)
         """
 
         p0 = self.rng.lognormal(mean=self.mean,
@@ -299,15 +246,11 @@ class LognormalPrior(BasePrior):
         Computes the gradient of the prior with
         respect to theta.
 
-        Parameters
-        ----------
-        theta : (D,) numpy array
-            Hyperparameter configuration in log space
+        :param theta: Hyperparameter configuration in log space
+        :type theta: numpy array(D,)
 
-        Returns
-        -------
-        (D) np.array
-            The gradient of the prior at theta.
+        :return: The gradient of the prior at theta.
+        :rtype: np.array(D)
         """
         pass
 
@@ -317,15 +260,13 @@ class NormalPrior(BasePrior):
         """
         Normal prior
 
-        Parameters
-        ----------
-        sigma: float
-            Specifies the standard deviation of the normal
+        :param sigma: Specifies the standard deviation of the normal
             distribution.
-        mean: float
-            Specifies the mean of the normal distribution
-        rng: np.random.RandomState
-            Random number generator
+        :type sigma: float
+        :param mean: Specifies the mean of the normal distribution
+        :type mean: float
+        :param rng: Random number generator
+        :type rng: np.random.RandomState
         """
         if rng is None:
             self.rng = np.random.RandomState(np.random.randint(0, 10000))
@@ -340,15 +281,11 @@ class NormalPrior(BasePrior):
         Returns the pdf of theta. Note: theta should
         be on a log scale.
 
-        Parameters
-        ----------
-        theta : (D,) numpy array
-            A hyperparameter configuration in log space.
+        :param theta: A hyperparameter configuration in log space.
+        :type theta: numpy array(D,)
 
-        Returns
-        -------
-        float
-            The log probability of theta
+        :return: The log probability of theta
+        :rtype: float
         """
 
         return sps.norm.pdf(theta, scale=self.sigma, loc=self.mean)
@@ -357,15 +294,11 @@ class NormalPrior(BasePrior):
         """
         Returns N samples from the prior.
 
-        Parameters
-        ----------
-        n_samples : int
-            The number of samples that will be drawn.
+        :param n_samples: The number of samples that will be drawn.
+        :type n_samples: int
 
-        Returns
-        -------
-        (N, D) np.array
-            The samples from the prior.
+        :return: The samples from the prior.
+        :rtype: np.array(N, D)
         """
 
         p0 = self.rng.normal(loc=self.mean,
@@ -378,15 +311,11 @@ class NormalPrior(BasePrior):
         Computes the gradient of the prior with
         respect to theta.
 
-        Parameters
-        ----------
-        theta : (D,) numpy array
-            Hyperparameter configuration in log space
+        :param theta: Hyperparameter configuration in log space
+        :type theta: numpy array(D,)
 
-        Returns
-        -------
-        (D) np.array
-            The gradient of the prior at theta.
+        :return: The gradient of the prior at theta.
+        :rtype: np.array(D)
         """
         return (1 / (self.sigma * np.sqrt(2 * np.pi))) * \
                (- theta / (self.sigma ** 2) * np.exp(- (theta ** 2) /
@@ -465,3 +394,4 @@ class EnvPrior(BasePrior):
         p0[:, -1] = self.horseshoe.sample_from_prior(n_samples)[:, 0]
 
         return p0
+s

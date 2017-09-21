@@ -21,16 +21,14 @@ class BaseMaximizer(object):
         Interface for optimizers that maximizing the
         acquisition function.
 
-        Parameters
-        ----------
-        objective_function: acquisition function
-            The acquisition function which will be maximized
-        lower: np.ndarray (D)
-            Lower bounds of the input space
-        upper: np.ndarray (D)
-            Upper bounds of the input space
-        rng: numpy.random.RandomState
-            Random number generator
+        :param objective_function: The acquisition function which will be maximized
+        :type objective_function: acquisition function
+        :param lower: Lower bounds of the input space
+        :type lower: np.ndarray (D)
+        :param upper: Upper bounds of the input space
+        :type upper: np.ndarray (D)
+        :param rng: Random number generator
+        :type rng: numpy.random.RandomState
         """
         self.lower = lower
         self.upper = upper
@@ -51,20 +49,20 @@ class Direct(BaseMaximizer):
         Interface for the DIRECT algorithm by D. R. Jones, C. D. Perttunen
         and B. E. Stuckmann
 
-        Parameters
-        ----------
-        objective_function: acquisition function
-            The acquisition function which will be maximized
-        lower: np.ndarray (D)
-            Lower bounds of the input space
-        upper: np.ndarray (D)
-            Upper bounds of the input space
-        n_func_evals: int
-            The maximum number of function evaluations
-        n_iters: int
-            The maximum number of iterations
-        verbose: bool
-            Suppress Direct's output.
+        :param objective_function: The acquisition function which will be maximized
+        :type objective_function: acquisition function
+        :param lower: Lower bounds of the input space
+        :type lower: np.ndarray (D)
+        :param upper: Upper bounds of the input space
+        :type upper: np.ndarray (D)
+        :param logfilename: File to store Direct's logs
+        :type logfilename: string
+        :param n_func_evals: The maximum number of function evaluations
+        :type n_func_evals: int
+        :param n_iters: The maximum number of iterations
+        :type n_iters: int
+        :param verbose: Suppress Direct's output.
+        :type verbose: bool
         """
         self.n_func_evals = n_func_evals
         self.n_iters = n_iters
@@ -83,11 +81,8 @@ class Direct(BaseMaximizer):
         """
         Maximizes the given acquisition function.
 
-        Returns
-        -------
-        np.ndarray(N,D)
-            Point with highest acquisition value.
-
+        :return: Point with highest acquisition value.
+        :rtype: np.ndarray(N,D)
         """
         if self.verbose:
             x, _, _ = DIRECT.solve(self._direct_acquisition_fkt_wrapper(self.objective_func),
@@ -120,10 +115,8 @@ class BaseAcquisitionFunction(object):
         """
         A base class for acquisition_functions functions.
 
-        Parameters
-        ----------
-        model : Model object
-            Models the objective function.
+        :param model: Models the objective function.
+        :type model: Model object
         """
         self.model = model
 
@@ -132,10 +125,8 @@ class BaseAcquisitionFunction(object):
         This method will be called if the model is updated. E.g.
         Entropy search uses it to update it's approximation of P(x=x_min)
 
-        Parameters
-        ----------
-        model : Model object
-            Models the objective function.
+        :param model: Models the objective function.
+        :type model: Model object
         """
 
         self.model = model
@@ -156,14 +147,13 @@ class BaseAcquisitionFunction(object):
         Computes the acquisition_functions value for a given point X. This function has
         to be overwritten in a derived class.
 
-        Parameters
-        ----------
-        x: np.ndarray(D,), The input point where the acquisition_functions function
+        :param x: The input point where the acquisition_functions function
             should be evaluate.
+        :type x: np.ndarray(D,)
 
-        derivative: Boolean
-            If is set to true also the derivative of the acquisition_functions
+        :param derivative: If is set to true also the derivative of the acquisition_functions
             function at X is returned
+        :type derivative: Boolean
         """
         pass
 
@@ -174,7 +164,8 @@ class BaseAcquisitionFunction(object):
         """
         Json getter function
 
-        :return: Dict() object
+        :return:
+        :rtype: Dict() object
         """
 
         json_data = dict()
@@ -189,17 +180,15 @@ class LogEI(BaseAcquisitionFunction):
         Computes for a given x the logarithm expected improvement as
         acquisition_functions value.
 
-        Parameters
-        ----------
-        model: Model object
+        :param model:
             A model that implements at least
                  - predict(X)
             If you want to calculate derivatives than it should also support
                  - predictive_gradients(X)
-
-        par: float
-            Controls the balance between exploration
+        :type model: Model object
+        :param par: Controls the balance between exploration
             and exploitation of the acquisition_functions function. Default is 0.01
+        :type par: float
         """
 
         super(LogEI, self).__init__(model)
@@ -210,25 +199,18 @@ class LogEI(BaseAcquisitionFunction):
         """
         Computes the Log EI value and its derivatives.
 
-        Parameters
-        ----------
-        X: np.ndarray(1, D), The input point where the acquisition_functions function
+        :param X: The input point where the acquisition_functions function
             should be evaluate. The dimensionality of X is (N, D), with N as
             the number of points to evaluate at and D is the number of
             dimensions of one X.
-
-        derivative: Boolean
-            If is set to true also the derivative of the acquisition_functions
+        :type X: np.ndarray(1, D)
+        :param derivative: If is set to true also the derivative of the acquisition_functions
             function at X is returned
             Not implemented yet!
+        :type derivative: Boolean
 
-        Returns
-        -------
-        np.ndarray(1,1)
-            Log Expected Improvement of X
-        np.ndarray(1,D)
-            Derivative of Log Expected Improvement at X
-            (only if derivative=True)
+        :return: Log Expected Improvement of X, Derivative of Log Expected Improvement at X (only if derivative=True)
+        :rtype: np.ndarray(1,1), np.ndarray(1,D)
         """
         if derivative:
             raise Exception("LogEI does not support derivative \
@@ -308,29 +290,28 @@ class InformationGain(BaseAcquisitionFunction):
             Entropy search for information-efficient global optimization
             Journal of Machine Learning Research, 13, 2012
 
-        Parameters
-        ----------
-        model: Model object
+        :param model:
             A model that implements at least
                  - predict(X)
                  - predict_variances(X1, X2)
             If you want to calculate derivatives than it should also support
                  - predictive_gradients(X)
-        lower: np.ndarray (D)
-            Lower bounds of the input space
-        upper: np.ndarray (D)
-            Upper bounds of the input space
-        Nb: int
-            Number of representer points to define pmin.
-        Np: int
-            Number of hallucinated values to compute the innovations
+        :type model: Model object
+        :param lower: Lower bounds of the input space
+        :type lower: np.ndarray (D)
+        :param upper: Upper bounds of the input space
+        :type upper: np.ndarray (D)
+        :param Nb: Number of representer points to define pmin.
+        :type Nb: int
+        :param Np: Number of hallucinated values to compute the innovations
             at the representer points
-        sampling_acquisition: function
-            Proposal measurement from which the representer points will
+        :type Np: int
+        :param sampling_acquisition: Proposal measurement from which the representer points will
             be samples
-        sampling_acquisition_kw: dist
-            Additional keyword parameters that are passed to the
+        :type sampling_acquisition: function
+        :param sampling_acquisition_kw: Additional keyword parameters that are passed to the
             acquisition_functions function
+        :type sampling_acquisition_kw: dict
         """
 
         self.Nb = Nb
@@ -363,23 +344,16 @@ class InformationGain(BaseAcquisitionFunction):
         """
         Computes the information gain of X and its derivatives
 
-        Parameters
-        ----------
-        X_test: np.ndarray(N, D), The input point where the acquisition_functions function
+        :param X_test: The input point where the acquisition_functions function
             should be evaluate.
-
-        derivative: Boolean
-            If is set to true also the derivative of the acquisition_functions
+        :type X_test: np.ndarray(N, D)
+        :param derivative: If is set to true also the derivative of the acquisition_functions
             function at X is returned
             Not tested!
+        :type derivative: Boolean
 
-        Returns
-        -------
-        np.ndarray(N,)
-            Relative change of entropy of pmin
-        np.ndarray(N,D)
-            Derivatives with respect to X
-            (only if derivative=True)
+        :return: Relative change of entropy of pmin, Derivatives with respect to X (only if derivative=True)
+        :rtype: np.ndarray(N,), np.ndarray(N,D)
         """
 
         acq = np.zeros([X_test.shape[0]])
@@ -564,26 +538,26 @@ class InformationGainPerUnitCost(InformationGain):
             Multi-task Bayesian optimization.
             In Proc. of NIPS 13, 2013.
 
-        Parameters
-        ----------
-        model : Model object
-            Models the objective function. The model has to be a
+        :param model: Models the objective function. The model has to be a
             Gaussian process.
-        cost_model : model
-            Models the cost function. The model has to be a Gaussian Process.
-        lower : (D) numpy array
-            Specified the lower bound of the input space. Each entry
+        :type model: Model object
+        :param cost_model: Models the cost function. The model has to be a Gaussian Process.
+        :type cost_model: model
+        :param lower: Specified the lower bound of the input space. Each entry
             corresponds to one dimension.
-        upper : (D) numpy array
-            Specified the upper bound of the input space. Each entry
+        :type lower: numpy array (D)
+        :param upper : Specified the upper bound of the input space. Each entry
             corresponds to one dimension.
-        is_env_variable : (D) numpy array
-            Specifies which input dimension is an environmental variable. If
+        :type upper: numpy array (D)
+        :param is_env_variable: Specifies which input dimension is an environmental variable. If
             the i-th input is an environmental variable than the i-th entry has
             to be 1 and 0 otherwise.
-        n_representer : int, optional
-            The number of representer points to discretize the input space and
+        :type is_env_variable: numpy array (D)
+        :param n_representer: The number of representer points to discretize the input space and
             to compute pmin.
+        :type n_representer: int
+        :param verbose: Print hyperparameter-configurations if true
+        :type verbose: bool
         """
         self.cost_model = cost_model
         self.n_dims = lower.shape[0]
@@ -608,21 +582,18 @@ class InformationGainPerUnitCost(InformationGain):
         """
         Computes the acquisition_functions value for a single point.
 
-        Parameters
-        ----------
-        X : (1, D) numpy array
-            The input point for which the acquisition_functions functions is computed.
-        derivative : bool, optional
-            If it is equal to True also the derivatives with respect to X is
+        :param X: The input point for which the acquisition_functions functions is computed.
+        :type X: numpy array (1, D)
+        :param derivative: If it is equal to True also the derivatives with respect to X is
             computed.
+        :type derivative: bool
 
-        Returns
-        -------
-        acquisition_value: numpy array
-            The acquisition_functions value computed for X.
-        grad : numpy array
-            The computed gradient of the acquisition_functions function at X. Only
-            returned if derivative==True
+
+        :return: acquisition_value, grad
+            acquisition_value: The acquisition_functions value computed for X.
+            grad: The computed gradient of the acquisition_functions function at X. Only
+                returned if derivative==True
+        :rtype: numpy array
         """
         if len(X.shape) == 1:
             X = X[np.newaxis, :]
@@ -704,11 +675,10 @@ class MarginalizationGPMCMC(BaseAcquisitionFunction):
         Meta acquisition_functions function that allows to marginalise the
         acquisition_functions function over GP hyperparameters.
 
-        Parameters
-        ----------
-
-        acquisition_func: BaseAcquisitionFunction object
-            The acquisition_functions function that will be integrated.
+        :param acquisition_func: The acquisition_functions function that will be integrated.
+        :type acquisition_func: BaseAcquisitionFunction object
+        :param pool_size: Thread count to use for calculations of all MarginalizationGPMCMC-instances. Automatic calculation for <0 or None
+        :type pool_size: int
         """
         if pool_size is not None and pool_size < 0:
             pool_size = min(len(acquisition_func.model.models), cpu_count())
@@ -776,15 +746,13 @@ class MarginalizationGPMCMC(BaseAcquisitionFunction):
         Updates each acquisition_functions function object if the models
         have changed
 
-        Parameters
-        ----------
-        model: Model object
-            The model of the objective function, it has to be an instance of
+        :param model: The model of the objective function, it has to be an instance of
             GaussianProcessMCMC.
-        cost_model: Model object
-            If the acquisition_functions function also takes the cost into account, we
+        :type model: Model object
+        :param cost_model: If the acquisition_functions function also takes the cost into account, we
             have to specify here the model for the cost function. cost_model
             has to be an instance of GaussianProcessMCMC.
+        :type cost_model: Model object
         """
         if len(self.estimators) == 0:
             self.estimators = self.get_estimators(self.acquisition_func)
@@ -811,23 +779,18 @@ class MarginalizationGPMCMC(BaseAcquisitionFunction):
         Integrates the acquisition_functions function over the GP's hyperparameters by
         averaging the acquisition_functions value for X of each hyperparameter sample.
 
-        Parameters
-        ----------
-        X_test: np.ndarray(N, D), The input point where the acquisition_functions function
+        :param X_test: The input point where the acquisition_functions function
             should be evaluate. The dimensionality of X is (N, D), with N as
             the number of points to evaluate at and D is the number of
             dimensions of one X.
+        :type X_test: np.ndarray(N, D)
 
-        derivative: Boolean
-            If is set to true also the derivative of the acquisition_functions
+        :param derivative: If is set to true also the derivative of the acquisition_functions
             function at X is returned
+        :type derivative: Boolean
 
-        Returns
-        -------
-        np.ndarray(1,1)
-            Integrated acquisition_functions value of X
-        np.ndarray(1,D)
-            Derivative of the acquisition_functions value at X (only if derivative=True)
+        :returns: Integrated acquisition_functions value of X, Derivative of the acquisition_functions value at X (only if derivative=True)
+        :rtype: np.ndarray(1,1), np.ndarray(1,D)
         """
         acquisition_values = np.zeros([len(self.model.models), X_test.shape[0]])
 

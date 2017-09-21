@@ -27,13 +27,11 @@ class BaseModel(object):
         """
         Trains the model on the provided data.
 
-        Parameters
-        ----------
-        X: np.ndarray (N, D)
-            Input data points. The dimensionality of X is (N, D),
+        :param X: Input data points. The dimensionality of X is (N, D),
             with N as the number of points and D is the number of input dimensions.
-        y: np.ndarray (N,)
-            The corresponding target values of the input data points.
+        :type X: np.ndarray (N, D)
+        :param y: The corresponding target values of the input data points.
+        :type y: np.ndarray (N,)
         """
         pass
 
@@ -42,13 +40,11 @@ class BaseModel(object):
         Update the model with the new additional data. Override this function if your
         model allows to do something smarter than simple retraining
 
-        Parameters
-        ----------
-        X: np.ndarray (N, D)
-            Input data points. The dimensionality of X is (N, D),
+        :param X: Input data points. The dimensionality of X is (N, D),
             with N as the number of points and D is the number of input dimensions.
-        y: np.ndarray (N,)
-            The corresponding target values of the input data points.
+        :type X: np.ndarray (N, D)
+        :param y: The corresponding target values of the input data points.
+        :type y: np.ndarray (N,)
         """
         X = np.append(self.X, X, axis=0)
         y = np.append(self.y, y, axis=0)
@@ -59,17 +55,15 @@ class BaseModel(object):
         """
         Predicts for a given set of test data points the mean and variance of its target values
 
-        Parameters
-        ----------
-        X_test: np.ndarray (N, D)
-            N Test data points with input dimensions D
+        :param X_test: N Test data points with input dimensions D
+        :type X_test: np.ndarray (N, D)
 
-        Returns
-        ----------
-        mean: ndarray (N,)
-            Predictive mean of the test data points
-        var: ndarray (N,)
-            Predictive variance of the test data points
+        :return: mean, var
+            mean:
+                Predictive mean of the test data points
+            var:
+                Predictive variance of the test data points
+        :rtype: ndarray (N,), ndarray (N,)
         """
         pass
 
@@ -93,9 +87,8 @@ class BaseModel(object):
         """
         Json getter function'
 
-        Returns
-        ----------
-            dictionary
+        :return:
+        :rtype: dictionary
         """
         json_data = {'X': self.X if self.X is None else self.X.tolist(),
                      'y': self.y if self.y is None else self.y.tolist(),
@@ -106,12 +99,12 @@ class BaseModel(object):
         """
         Returns the best observed point and its function value
 
-        Returns
-        ----------
-        incumbent: ndarray (D,)
-            current incumbent
-        incumbent_value: ndarray (N,)
-            the observed value of the incumbent
+        :return: incumbent, incumbent_value
+            incumbent:
+                current incumbent
+            incumbent_value:
+                the observed value of the incumbent
+        :rtype: ndarray (D,), ndarray (N,)
         """
         best_idx = np.argmin(self.y)
         return self.X[best_idx], self.y[best_idx]
@@ -130,30 +123,30 @@ class GaussianProcessMCMC(BaseModel):
         make sure that you also use the IntegratedAcqusition function to
         integrate over the GP's hyperparameter as proposed by Snoek et al.
 
-        Parameters
-        ----------
-        kernel : george kernel object
-            Specifies the kernel that is used for all Gaussian Process
-        prior : prior object
-            Defines a prior for the hyperparameters of the GP. Make sure that
+        :param kernel: Specifies the kernel that is used for all Gaussian Process
+        :type kernel: george kernel object
+        :param prior: Defines a prior for the hyperparameters of the GP. Make sure that
             it implements the Prior interface. During MCMC sampling the
             lnlikelihood is multiplied with the prior.
-        n_hypers : int
-            The number of hyperparameter samples. This also determines the
+        :type prior: prior object
+        :param n_hypers: The number of hyperparameter samples. This also determines the
             number of walker for MCMC sampling as each walker will
             return one hyperparameter sample.
-        chain_length : int
-            The length of the MCMC chain. We start n_hypers walker for
+        :type n_hypers: int
+        :param chain_length: The length of the MCMC chain. We start n_hypers walker for
             chain_length steps and we use the last sample
             in the chain as a hyperparameter sample.
-        lower : np.array(D,)
-            Lower bound of the input space which is used for the input space normalization
-        upper : np.array(D,)
-            Upper bound of the input space which is used for the input space normalization
-        burnin_steps : int
-            The number of burnin steps before the actual MCMC sampling starts.
-        rng: np.random.RandomState
-            Random number generator
+        :type chain_length: int
+        :param lower: Lower bound of the input space which is used for the input space normalization
+        :type lower: np.array(D,)
+        :param upper: Upper bound of the input space which is used for the input space normalization
+        :type upper: np.array(D,)
+        :param burnin_steps: The number of burnin steps before the actual MCMC sampling starts.
+        :type burnin_steps: int
+        :param pool_size: Thread count to use for calculations of all MarginalizationGPMCMC-instances. Automatic calculation for <0 or None
+        :type pool_size: int
+        :param rng: Random number generator
+        :type rng: np.random.RandomState
         """
 
         if rng is None:
@@ -214,16 +207,14 @@ class GaussianProcessMCMC(BaseModel):
         Performs MCMC sampling to sample hyperparameter configurations from the
         likelihood and trains for each sample a GP on X and y
 
-        Parameters
-        ----------
-        X: np.ndarray (N, D)
-            Input data points. The dimensionality of X is (N, D),
+        :param X: Input data points. The dimensionality of X is (N, D),
             with N as the number of points and D is the number of features.
-        y: np.ndarray (N,)
-            The corresponding target values.
-        do_optimize: boolean
-            If set to true we perform MCMC sampling otherwise we just use the
+        :type X: np.ndarray (N, D)
+        :param y: The corresponding target values.
+        :type y: np.ndarray (N,)
+        :param do_optimize: If set to true we perform MCMC sampling otherwise we just use the
             hyperparameter specified in the kernel.
+        :type do_optimize: boolean
         """
 
         if self.normalize_input:
@@ -311,16 +302,12 @@ class GaussianProcessMCMC(BaseModel):
         Return the loglikelihood (+ the prior) for a hyperparameter
         configuration theta.
 
-        Parameters
-        ----------
-        theta : np.ndarray(H)
-            Hyperparameter vector. Note that all hyperparameter are
+        :param theta: Hyperparameter vector. Note that all hyperparameter are
             on a log scale.
+        :type theta: np.ndarray(H)
 
-        Returns
-        ----------
-        float
-            lnlikelihood + prior
+        :return: lnlikelihood + prior
+        :rtype: float
         """
 
         # Bound the hyperparameter space to keep things sane. Note all
@@ -353,17 +340,11 @@ class GaussianProcessMCMC(BaseModel):
         And the variance by:
         :math \sigma^2(x) = (\frac{1}{M}\sum_{i=1}^{M}(\sigma^2_m(x) + \mu_m(x)^2) - \mu^2
 
-        Parameters
-        ----------
-        X_test: np.ndarray (N, D)
-            Input test points
+        :param X_test: Input test points
+        :type X_test: np.ndarray (N, D)
 
-        Returns
-        ----------
-        np.array(N,)
-            predictive mean
-        np.array(N,)
-            predictive variance
+        :return: predictive mean, predictive variance
+        :rtype: np.array(N,), np.array(N,)
 
         """
         if not self.is_trained:
@@ -409,12 +390,12 @@ class GaussianProcessMCMC(BaseModel):
         """
         Returns the best observed point and its function value
 
-        Returns
-        ----------
-        incumbent: ndarray (D,)
-            current incumbent
-        incumbent_value: ndarray (N,)
-            the observed value of the incumbent
+        :return: incumbent, incumbent_value
+            incumbent:
+                current incumbent
+            incumbent_value:
+                the observed value of the incumbent
+        :rtype: ndarray (D,), ndarray (N,)
         """
         inc, inc_value = super(GaussianProcessMCMC, self).get_incumbent()
         if self.normalize_input:
@@ -436,29 +417,27 @@ class GaussianProcess(BaseModel):
         Interface to the george GP library. The GP hyperparameter are obtained
         by optimizing the marginal log likelihood.
 
-        Parameters
-        ----------
-        kernel : george kernel object
-            Specifies the kernel that is used for all Gaussian Process
-        prior : prior object
-            Defines a prior for the hyperparameters of the GP. Make sure that
+        :param kernel: Specifies the kernel that is used for all Gaussian Process
+        :type kernel: george kernel object
+        :param prior: Defines a prior for the hyperparameters of the GP. Make sure that
             it implements the Prior interface.
-        noise : float
-            Noise term that is added to the diagonal of the covariance matrix
+        :type prior: prior object
+        :param noise: Noise term that is added to the diagonal of the covariance matrix
             for the Cholesky decomposition.
-        use_gradients : bool
-            Use gradient information to optimize the negative log likelihood
-        lower : np.array(D,)
-            Lower bound of the input space which is used for the input space normalization
-        upper : np.array(D,)
-            Upper bound of the input space which is used for the input space normalization
-        normalize_output : bool
-            Zero mean unit variance normalization of the output values
-        normalize_input : bool
-            Normalize all inputs to be in [0, 1]. This is important to define good priors for the
+        :type noise: float
+        :param use_gradients: Use gradient information to optimize the negative log likelihood
+        :type use_gradients: bool
+        :param lower: Lower bound of the input space which is used for the input space normalization
+        :type lower: np.array(D,)
+        :param upper: Upper bound of the input space which is used for the input space normalization
+        :type upper: np.array(D,)
+        :param normalize_output: Zero mean unit variance normalization of the output values
+        :type normalize_output: bool
+        :param normalize_input: Normalize all inputs to be in [0, 1]. This is important to define good priors for the
             length scales.
-        rng: np.random.RandomState
-            Random number generator
+        :type normalize_input: bool
+        :param rng: Random number generator
+        :type rng: np.random.RandomState
         """
 
         if rng is None:
@@ -489,16 +468,14 @@ class GaussianProcess(BaseModel):
         loglikelihood. The prior mean of the GP is set to the empirical
         mean of X.
 
-        Parameters
-        ----------
-        X: np.ndarray (N, D)
-            Input data points. The dimensionality of X is (N, D),
+        :param X: Input data points. The dimensionality of X is (N, D),
             with N as the number of points and D is the number of features.
-        y: np.ndarray (N,)
-            The corresponding target values.
-        do_optimize: boolean
-            If set to true the hyperparameters are optimized otherwise
+        :type X: np.ndarray (N, D)
+        :param y: The corresponding target values.
+        :type y: np.ndarray (N,)
+        :param do_optimize: If set to true the hyperparameters are optimized otherwise
             the default hyperparameters of the kernel are used.
+        :type do_optimize: boolean
         """
 
         if self.normalize_input:
@@ -544,16 +521,12 @@ class GaussianProcess(BaseModel):
         a hyperparameter configuration theta.
         (negative because we use scipy minimize for optimization)
 
-        Parameters
-        ----------
-        theta : np.ndarray(H)
-            Hyperparameter vector. Note that all hyperparameter are
+        :param theta: Hyperparameter vector. Note that all hyperparameter are
             on a log scale.
+        :type theta: np.ndarray(H)
 
-        Returns
-        ----------
-        float
-            lnlikelihood + prior
+        :return: lnlikelihood + prior
+        :rtype: float
         """
         # Specify bounds to keep things sane
         if np.any((-20 > theta) + (theta > 20)):
@@ -607,10 +580,8 @@ class GaussianProcess(BaseModel):
         Optimizes the marginal log likelihood and returns the best found
         hyperparameter configuration theta.
 
-        Returns
-        -------
-        theta : np.ndarray(H)
-            Hyperparameter vector that maximizes the marginal log likelihood
+        :return: theta: Hyperparameter vector that maximizes the marginal log likelihood
+        :rtype: np.ndarray(H)
         """
         # Start optimization from the previous hyperparameter configuration
         p0 = self.gp.kernel.vector
@@ -637,17 +608,13 @@ class GaussianProcess(BaseModel):
            math: \sigma(X_1, X_2) = k_{X_1,X_2} - k_{X_1,X} * (K_{X,X}
                        + \sigma^2*\mathds{I})^-1 * k_{X,X_2})
 
-        Parameters
-        ----------
-        x1: np.ndarray (1, D)
-            First test point
-        X2: np.ndarray (N, D)
-            Set of test point
-        Returns
-        ----------
-        np.array(N, 1)
-            predictive variance between x1 and X2
+        :param x1: First test point
+        :type x1: np.ndarray (1, D)
+        :param X2: Set of test point
+        :type X2: np.ndarray (N, D)
 
+        :return: predictive variance between x1 and X2
+        :rtype: np.array(N, 1)
         """
 
         if not self.is_trained:
@@ -673,19 +640,13 @@ class GaussianProcess(BaseModel):
         Returns the predictive mean and variance of the objective function at
         the given test points.
 
-        Parameters
-        ----------
-        X_test: np.ndarray (N, D)
-            Input test points
-        full_cov: bool
-            If set to true than the whole covariance matrix between the test points is returned
+        :param X_test: Input test points
+        :type X: np.ndarray (N, D)
+        :param full_cov: If set to true than the whole covariance matrix between the test points is returned
+        :type fill_cov: bool
 
-        Returns
-        ----------
-        np.array(N,)
-            predictive mean
-        np.array(N,) or np.array(N, N) if full_cov == True
-            predictive variance
+        :return: predictive mean, predictive variance
+        :rtype: np.array(N,), np.array(N,) or np.array(N, N) if full_cov == True
 
         """
 
@@ -720,17 +681,13 @@ class GaussianProcess(BaseModel):
         Samples F function values from the current posterior at the N
         specified test points.
 
-        Parameters
-        ----------
-        X_test: np.ndarray (N, D)
-            Input test points
-        n_funcs: int
-            Number of function values that are drawn at each test point.
+        :param X_test: Input test points
+        :type X_test: np.ndarray (N, D)
+        :param n_funcs: Number of function values that are drawn at each test point.
+        :type n_funcs: int
 
-        Returns
-        ----------
-        function_samples: np.array(F, N)
-            The F function values drawn at the N test points.
+        :return: function_samples: The F function values drawn at the N test points.
+        :rtype: np.array(F, N)
         """
 
         if self.normalize_input:
@@ -755,12 +712,8 @@ class GaussianProcess(BaseModel):
         """
         Returns the best observed point and its function value
 
-        Returns
-        ----------
-        incumbent: ndarray (D,)
-            current incumbent
-        incumbent_value: ndarray (N,)
-            the observed value of the incumbent
+        :return: current incumbent, the observed value of the incumbent
+        :rtype: ndarray (D,), ndarray (N,)
         """
         inc, inc_value = super(GaussianProcess, self).get_incumbent()
         if self.normalize_input:
@@ -912,12 +865,9 @@ class FabolasGP(GaussianProcess):
         """
         Returns the best observed point and its function value
 
-        Returns
-        ----------
-        incumbent: ndarray (D,)
-            current incumbent
-        incumbent_value: ndarray (N,)
-            the observed value of the incumbent
+        :return: current incumbent, the observed value of the incumbent
+        :rtype: ndarray (D,), ndarray (N,)
+
         """
 
         projection = np.ones([self.original_X.shape[0], 1]) * 1
