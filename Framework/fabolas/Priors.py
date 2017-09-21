@@ -394,4 +394,3 @@ class EnvPrior(BasePrior):
         p0[:, -1] = self.horseshoe.sample_from_prior(n_samples)[:, 0]
 
         return p0
-s
