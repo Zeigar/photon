@@ -52,29 +52,44 @@ class Fabolas:
             consider_opt_time=False,
             log=None,
             maximizer_func_evals=200,
-            **_
+            **kwargs
     ):
         '''
         Initializes the Fabolas-Object.
 
         Creates and initializes the models and the maximizer. Reads the hyperparameters and their boundaries.
         :param n_min_train_data: Minimal amount of data to use for training
+        :type n_min_train_data: int
         :param n_train_data: Maximum amount of data to use for training (normally the size of the full set)
+        :type n_train_data: int
         :param pipeline_elements: Elements that need to be optimized
+        :type pipeline_elements: iterable of PipelineElement
         :param n_init: Number of iterations in the initizialization-phase
+        :type n_init: int
         :param num_iterations: Total number of iterations
+        :type num_iterations: int
         :param subsets: Subset-fragmentations to use in the init-phase
+        :type subsets: iterable of int
         :param burnin: burning-steps of the MCMC-models
+        :type burnin: int
         :param chain_length: chain-length of the MCMC-models
+        :type chain_length: int
         :param n_hypers: number of hyper-parameters used by the MCMC-models
+        :type n_hypers: int
         :param model_pool_size: Number of threads to use for all models
+        :type model_pool_size: int
         :param acquisition_pool_size: Number of threads to use for the maximizer
+        :type acquisition_pool_size: int
         :param rng: Random number generator. Creates a new one if null
+        :type rng: np.random.RandomState
         :param verbose_maximizer: Print maximizer-output to screen
+        :type verbose_maximizer: bool
         :param verbose_gp: Print hyperparameter-configurations of the MCMC-Models while optimization
+        :type verbose_gp: bool
         :param consider_opt_time:
             if true: use the calculation-time + evaluation-time as cost (as proposed in the FABOLAS-Paper)
             else: use the evaluation-time as cost (as in the original source code)
+        :type consider_opt_time: bool
         :param log:
             if null: don't log results in each iteration
             else: following dict:
@@ -84,8 +99,11 @@ class Fabolas:
                 incumbents:
                     if true: calculate optimal config (incumbents) in each iteration and log them (needs additional computation time)
                     else: don't log incumbents
+        :type log: dict
         :param maximizer_func_evals: Number of function-evaluations for the maximizer
-        :param _: unused
+        :type maximizer_func_evals: int
+        :param kwargs: unused (catchall for named params)
+        :type kwargs: dict
         '''
         assert n_init <= num_iterations, "Number of initial design point has to be <= than the number of iterations"
 
@@ -280,7 +298,8 @@ class Fabolas:
             Implemented as a generator.
 
             The returned tracking vars are for internal use and need to be passed to process_result.
-        :return: (next configuration to test, subset-frag to use, tracking-vars)
+        :return: next configuration to test, subset-frag to use, tracking-vars
+        :rtype: dict, int, dict
         '''
         Logger().debug('Fabolas: Starting initialization')
         for self._it in range(0, self._n_init):
@@ -317,10 +336,15 @@ class Fabolas:
         Process results from the calculation
 
         :param config: used configuration
+        :type config: dict
         :param subset_frac: used subset-fragmentation
+        :type subset_frac: int
         :param score: evaluation loss
+        :type score: float
         :param cost: evaluation cost
+        :type cost: float
         :param tracking_vars: tracking vars returned by calc_config
+        :type tracking_vars: dict
         '''
         # We're done
         if self._it >= self._num_iterations:
@@ -353,7 +377,8 @@ class Fabolas:
     def get_incumbent(self):
         '''
             Calculates the best configuration that can be calculated from known data (incumbent)
-        :return: (Configuration, subset-fragmentation = 1)
+        :return: Configuration, subset-fragmentation = 1
+        :rtype: list of numbers, int
         '''
         # This final configuration should be the best one
         final_config, _ = self._projected_incumbent_estimation(
@@ -366,7 +391,10 @@ class Fabolas:
         Rounds all hyperparameters that have to be integers and casts them to int
 
         :param params: all hyperparameters as list
+        :type params: list
+
         :return: alls hyperparameters with corrected types
+        :rtype: list
         '''
         for i in self._param_int_indices:
             params[i] = int(np.round(params[i]))
@@ -375,9 +403,14 @@ class Fabolas:
     def _create_param_dict(self, params, tracking=None):
         '''
         Create the parameter-dictionary from the internally used parameter-list and splits the subset-fragmentation
+
         :param params: hyperparameters as list
+        :type params: list
         :param tracking: tracking-vars for Fabolas (pass-thru)
-        :return: (hyperparameters as dict, subset-fragmentation, tracking)
+        :type tracking: dict
+
+        :return: hyperparameters as dict, subset-fragmentation, tracking
+        :rtype: dict, int, dict
         '''
         params, s = params
         if tracking is not None:
@@ -394,8 +427,12 @@ class Fabolas:
     def _get_params_from_dict(self, pdict):
         '''
         Turn the hyperparameter-dictionary to the internally used hyperparameter-list
+
         :param pdict: hyperparameter-dictionary
+        :type pdict: dict
+
         :return: hyperparameter-list
+        :rtype: list
         '''
         params = []
         for key in self._number_param_keys:
@@ -406,7 +443,9 @@ class Fabolas:
     def _init_models(self):
         '''
         Calculate configuration and subset-fragmentation in the init-phase
-        :return: (configuration, subset-fragmentation)
+
+        :return: configuration, subset-fragmentation
+        :rtype: list, int
         '''
         s = self._subsets[self._it % len(self._subsets)]
         x = self._init_random_uniform(self._lower, self._upper, 1)[0]
@@ -415,7 +454,9 @@ class Fabolas:
     def _optimize_config(self):
         '''
         Train models and calculate the configuration and subset-fragmentation in the optimization-phase
-        :return: (configuration, subset-fragmentation)
+
+        :return: configuration, subset-fragmentation
+        :rtype: list, int
         '''
         # Train models
         Logger().debug("Fabolas: Train model_objective")
@@ -437,10 +478,16 @@ class Fabolas:
     def _projected_incumbent_estimation(self, model, X, proj_value=1):
         '''
         Calculate the incumbent by projection
+
         :param model: trained model
+        :type model: Model object
         :param X: hyperparameters
+        :type X: list
         :param proj_value: projection-value
-        :return: (incumbent, assumed error)
+        :type proj_value: float
+
+        :return: incumbent, assumed error
+        :rtype: list, float
         '''
         projection = np.ones([X.shape[0], 1]) * proj_value
         X_projected = np.concatenate((X, projection), axis=1)
@@ -456,11 +503,17 @@ class Fabolas:
     def _generate_log(self, conf, subset, result, cost, tracking_vars):
         '''
         Generates the log and stores it into the logfile and calculate the incumbent if the constructor-parameter log['incumbent'] was true
+
         :param conf: used configuration
+        :type conf: dict
         :param subset: used subset-fragmentation
+        :type subset: int
         :param result: the result of the evaluation
+        :type result: float
         :param cost: the cost of the evaluation
+        :type cost: float
         :param tracking_vars: Fabolas' tracking vars
+        :type tracking_vars: dict
         '''
         if self._log is None:
             return
@@ -504,8 +557,12 @@ class Fabolas:
     def _transform(self, s):
         '''
         Tranforms the subset-fragmentation to log-space
-        :param s:
-        :return:
+
+        :param s: subset-fragmentation
+        :type s: int
+
+        :return: Tranformed fragmentation
+        :rtype: float
         '''
         s_transform = (np.log2(s) - np.log2(self._s_min)) \
                       / (np.log2(self._s_max) - np.log2(self._s_min))
@@ -514,8 +571,12 @@ class Fabolas:
     def _retransform(self, s_transform):
         '''
         Retransforms the subset-fragmentation from log-space to normal space
-        :param s_transform:
-        :return:
+
+        :param s_transform: transformed log-space s
+        :type s_transform: float
+
+        :return: normal-space s
+        :rtype: int
         '''
         s = np.rint(2**(s_transform * (np.log2(self._s_max) \
                                        - np.log2(self._s_min)) \
@@ -526,16 +587,17 @@ class Fabolas:
         '''
         Samples N data points uniformly.
 
-        :param lower: np.ndarray (D)
-            Lower bounds of the input space
-        :param upper: np.ndarray (D)
-            Upper bounds of the input space
-        :param n_points: int
-            The number of initial data points
-        :param rng: np.random.RandomState
-                Random number generator
-        :return: np.ndarray(N,D)
-            The initial design data points
+        :param lower: Lower bounds of the input space
+        :type lower: np.ndarray(D)
+        :param upper: Upper bounds of the input space
+        :type upper: np.ndarray(D)
+        :param n_points: The number of initial data points
+        :type n_points: int
+        :param rng: Random number generator
+        :type rng: np.random.RandomState
+
+        :return: The initial design data points
+        :rtype: np.ndarray(N,D)
         '''
 
         n_dims = lower.shape[0]
