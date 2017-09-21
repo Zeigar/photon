@@ -67,7 +67,7 @@ class Fabolas:
         :param burnin: burning-steps of the MCMC-models
         :param chain_length: chain-length of the MCMC-models
         :param n_hypers: number of hyper-parameters used by the MCMC-models
-        :param model_pool_size: Number of threads to use for each model
+        :param model_pool_size: Number of threads to use for all models
         :param acquisition_pool_size: Number of threads to use for the maximizer
         :param rng: Random number generator. Creates a new one if null
         :param verbose_maximizer: Print maximizer-output to screen
