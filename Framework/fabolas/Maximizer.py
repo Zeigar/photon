@@ -719,6 +719,9 @@ class MarginalizationGPMCMC(BaseAcquisitionFunction):
             self._pool.join()
 
     def get_estimators(self, acquisition_func):
+        if len(self.model.models) == 0:
+            return []
+
         # Keep for each model an extra acquisition_functions function module
         model_args = []
         for i in range(len(self.model.models)):
@@ -763,7 +766,12 @@ class MarginalizationGPMCMC(BaseAcquisitionFunction):
 
         self.estimators = self.pool.starmap(
             partial(self.update_estimator, kw=kwargs),
-            zip(self.estimators, self.model.models, self.cost_model.models)
+            zip(
+                self.estimators,
+                self.model.models,
+                self.cost_model.models if cost_model is not None\
+                    else [None]*len(self.model.models)
+            )
         )
 
     @staticmethod

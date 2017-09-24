@@ -4,7 +4,7 @@ import numbers
 
 import os
 import json
-
+from copy import copy
 from time import time
 
 from Framework.fabolas.GPMCMC import FabolasGPMCMC
@@ -416,13 +416,14 @@ class Fabolas:
         if tracking is not None:
             tracking.update({'config_log': dict(zip(self._number_param_keys, params))})
         params = self._adjust_param_types(np.exp(params))
-        self._param_dict.update(
+        pdict = copy(self._param_dict)
+        pdict.update(
             dict(zip(
                 self._number_param_keys,
                 params
             ))
         )
-        return self._param_dict, s, tracking
+        return pdict, s, tracking
 
     def _get_params_from_dict(self, pdict):
         '''
@@ -536,15 +537,12 @@ class Fabolas:
                 best_i = np.argmin(self._Y)
                 l['incumbents'], _, track = self._create_param_dict((self._X[best_i][:-1], 1), {})
                 l['incumbents_estimated_performance'] = -1
-                if tracking_vars is not None:
-                    l['incumbents_log'] = track['config_log']
+                l['incumbents_log'] = track['config_log']
             else:
                 inc, inc_val = self._projected_incumbent_estimation(self._model_objective, self._X[:, :-1])
                 l['incumbents'], _, track = self._create_param_dict((inc[:-1], 1), {})
                 l['incumbents_estimated_performance'] = inc_val
-                if tracking_vars is not None:
-                    l['incumbents_log'] = track['config_log']
-            tracking_vars.update({'incumbent_time': time()-start})
+                l.update({'incumbent_time': time()-start})
 
         l.update(tracking_vars)
 
